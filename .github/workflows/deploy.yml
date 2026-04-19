@@ -13,9 +13,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Zip app
-        run: |
-          cd backend
-          zip -r ../app.zip .
+        run: zip -r app.zip .
 
       - name: Deploy to Azure Web App
         uses: azure/webapps-deploy@v3
