@@ -1,0 +1,5 @@
+.venv/
+.env
+human_capital.db
+__pycache__/
+*.pyc
