@@ -48,9 +48,8 @@ app = FastAPI(title="Human Capital OS")
 ALLOWED_ORIGINS = [
     "http://localhost:3000",
     "http://127.0.0.1:3000",
-    # Azure / Vercel公開後にここへ本番URLを追加
-    # "https://your-frontend.vercel.app",
-    # "https://your-app.azurewebsites.net",
+    "http://192.168.3.31:3000",
+    "https://tech0-gen-11-step3-2-py-62.azurewebsites.net",
 ]
 
 
