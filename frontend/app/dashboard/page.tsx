@@ -120,7 +120,7 @@ export default function DashboardPage() {
       try {
         const token = localStorage.getItem("token");
 
-        const authHeaders = token
+        const authHeaders: HeadersInit = token
           ? { Authorization: `Bearer ${token}` }
           : {};
 

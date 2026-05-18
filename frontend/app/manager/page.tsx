@@ -32,7 +32,7 @@ type Post = {
 };
 
 const pointOptions = [1, 5, 10];
-const ROLE = "manager";
+const ROLE: "manager" | "employee" = "manager";
 
 function normalizeCategory(category?: string) {
   const raw = category ?? "未分類";

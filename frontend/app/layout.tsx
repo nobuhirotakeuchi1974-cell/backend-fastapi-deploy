@@ -4,7 +4,7 @@ import Link from "next/link";
 import "./globals.css";
 
 // const ROLE = "employee";
-const ROLE = "manager";
+const ROLE: "manager" | "employee" = "manager";
 
 export default function RootLayout({
   children,
