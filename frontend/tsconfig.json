@@ -19,7 +19,6 @@
       }
     ],
     "paths": {
-<<<<<<< HEAD
       "@/*": ["./*"]
     }
   },
@@ -31,11 +30,5 @@
     ".next/dev/types/**/*.ts",
     "**/*.mts"
   ],
-=======
-      "@/*": ["./src/*"]
-    }
-  },
-  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
->>>>>>> 4d5bedd980555e96f28fb72f03e94f9dc1db27dd
   "exclude": ["node_modules"]
 }

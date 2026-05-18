@@ -39,3 +39,44 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+# ===== Old Backup =====
+src_old_wealthsupporter_backup/
+
+# ===== Build / Dist =====
+dist/
+build/
+
+# ===== Azure =====
+.azure/
+
+# ===== Coverage =====
+.coverage
+htmlcov/
+
+# ===== Mac / Windows =====
+Desktop.ini
+
+# ===== Local DB =====
+human_capital.db
+# ===== Python =====
+__pycache__/
+**/__pycache__/
+*.pyc
+*.py[cod]
+
+# ===== Python venv =====
+.venv/
+venv/
+env/
+
+# ===== Backend Env =====
+backend/.env
+frontend/.env.local
+
+# ===== SQLite =====
+*.db
+*.sqlite
+*.sqlite3
+_trash_before_azure/
+# ===== Temporary Backup =====
+/_trash_before_azure/
