@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useState } from "react";
 
@@ -49,12 +49,12 @@ export default function RankingPage() {
   return (
     <main className="min-h-screen bg-gray-100 p-8">
       <h1 className="text-4xl font-bold mb-8 text-gray-900">
-        部門ランキング
+        驛ｨ髢繝ｩ繝ｳ繧ｭ繝ｳ繧ｰ
       </h1>
 
       <div className="bg-white rounded-2xl shadow-lg p-6 mb-10">
         <h2 className="text-2xl font-bold mb-6 text-gray-800">
-          ROI推移
+          ROI謗ｨ遘ｻ
         </h2>
 
         <div style={{ width: "100%", height: "320px" }}>
@@ -65,7 +65,7 @@ export default function RankingPage() {
               <YAxis />
               <Tooltip
                 formatter={(value) =>
-                  `¥${Number(value).toLocaleString()}`
+                  `ﾂ･${Number(value).toLocaleString()}`
                 }
               />
               <Line
@@ -103,7 +103,7 @@ export default function RankingPage() {
                 </p>
 
                 <p className="text-3xl font-bold text-green-600">
-                  ¥{item.total_roi.toLocaleString()}
+                  ﾂ･{item.total_roi.toLocaleString()}
                 </p>
               </div>
             </div>
@@ -111,7 +111,7 @@ export default function RankingPage() {
             <div className="grid grid-cols-3 gap-4 mt-6">
               <div className="bg-gray-50 rounded-xl p-4">
                 <p className="text-sm text-gray-500">
-                  投稿数
+                  謚慕ｨｿ謨ｰ
                 </p>
                 <p className="text-2xl font-bold text-gray-900">
                   {item.post_count}
@@ -120,7 +120,7 @@ export default function RankingPage() {
 
               <div className="bg-gray-50 rounded-xl p-4">
                 <p className="text-sm text-gray-500">
-                  承認数
+                  謇ｿ隱肴焚
                 </p>
                 <p className="text-2xl font-bold text-gray-900">
                   {item.approved_count}
@@ -129,7 +129,7 @@ export default function RankingPage() {
 
               <div className="bg-gray-50 rounded-xl p-4">
                 <p className="text-sm text-gray-500">
-                  ポインチE
+                  繝昴う繝ｳ繝・
                 </p>
                 <p className="text-2xl font-bold text-gray-900">
                   {item.total_points}
@@ -142,3 +142,4 @@ export default function RankingPage() {
     </main>
   );
 }
+
