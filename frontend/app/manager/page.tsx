@@ -1,5 +1,8 @@
 "use client";
 
+import AuthGuard from "../components/AuthGuard";
+import LogoutButton from "../components/LogoutButton";
+
 import { useEffect, useMemo, useState } from "react";
 import type { Dispatch, SetStateAction, ReactNode } from "react";
 import { CheckCircle2 } from "lucide-react";
@@ -38,7 +41,8 @@ function normalizeCategory(category?: string) {
   const raw = category ?? "未分類";
   const normalized = String(raw).toLowerCase();
 
-  if (normalized.includes("challenge") || normalized.includes("挑戦")) return "挑戦";
+  if (normalized.includes("challenge") || normalized.includes("挑戦"))
+    return "挑戦";
   if (
     normalized.includes("improvement") ||
     normalized.includes("改善") ||
@@ -54,7 +58,8 @@ function normalizeCategory(category?: string) {
   ) {
     return "助け合い";
   }
-  if (normalized.includes("learning") || normalized.includes("学習")) return "学習";
+  if (normalized.includes("learning") || normalized.includes("学習"))
+    return "学習";
 
   return raw;
 }
@@ -123,27 +128,31 @@ function sortNewest(a: Post, b: Post) {
 export default function ManagerPage() {
   if (ROLE === "employee") {
     return (
-      <main
-        style={{
-          minHeight: "100vh",
-          background: "#071326",
-          color: "white",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          fontSize: "24px",
-          fontWeight: 900,
-        }}
-      >
-        アクセス権限がありません
-      </main>
+      <AuthGuard>
+        <main
+          style={{
+            minHeight: "100vh",
+            background: "#071326",
+            color: "white",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            fontSize: "24px",
+            fontWeight: 900,
+          }}
+        >
+          アクセス権限がありません
+        </main>
+      </AuthGuard>
     );
   }
 
   const [posts, setPosts] = useState<Post[]>([]);
   const [message, setMessage] = useState("");
   const [showAnimation, setShowAnimation] = useState(false);
-  const [selectedPoints, setSelectedPoints] = useState<Record<string, number>>({});
+  const [selectedPoints, setSelectedPoints] = useState<Record<string, number>>(
+    {}
+  );
   const [comments, setComments] = useState<Record<string, string>>({});
 
   const getAuthHeaders = () => {
@@ -159,6 +168,7 @@ export default function ManagerPage() {
     try {
       const res = await fetch(`${API_BASE_URL}/api/posts`, {
         cache: "no-store",
+        headers: getAuthHeaders(),
       });
 
       if (!res.ok) {
@@ -278,104 +288,120 @@ export default function ManagerPage() {
   const pendingValue = pendingPoints * VALUE_PER_POINT;
 
   return (
-    <main className="min-h-screen bg-[#071326] px-6 py-10 text-white">
-      <section className="mx-auto max-w-6xl">
-        <header className="relative overflow-hidden rounded-[28px] border border-emerald-400/20 bg-gradient-to-r from-[#0b1b33] to-[#06402f] p-8 shadow-2xl shadow-emerald-500/10">
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(16,185,129,0.18),transparent_45%)]" />
+    <AuthGuard>
+      <main className="min-h-screen bg-[#071326] px-6 py-10 text-white">
+        <section className="mx-auto max-w-6xl">
+          <header className="relative overflow-hidden rounded-[28px] border border-emerald-400/20 bg-gradient-to-r from-[#0b1b33] to-[#06402f] p-8 shadow-2xl shadow-emerald-500/10">
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(16,185,129,0.18),transparent_45%)]" />
 
-          <div className="relative z-10">
-            <p className="mb-4 inline-flex rounded-full border border-emerald-400/30 bg-emerald-400/10 px-4 py-2 text-sm font-black text-emerald-300">
-              ● Manager Review
-            </p>
+            <div className="relative z-10 flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
+              <div>
+                <p className="mb-4 inline-flex rounded-full border border-emerald-400/30 bg-emerald-400/10 px-4 py-2 text-sm font-black text-emerald-300">
+                  ● Manager Review
+                </p>
 
-            <h1 className="text-4xl font-black">
-              上司評価・価値確定ダッシュボード
-            </h1>
+                <h1 className="text-4xl font-black">
+                  上司評価・価値確定ダッシュボード
+                </h1>
 
-            <p className="mt-5 max-w-4xl leading-8 text-slate-200">
-              AI分析コメント、推定ROI-P、信頼スコア、部門間評価乖離を確認しながら、
-              社員行動を人的資本価値として確定します。
-            </p>
-          </div>
-        </header>
+                <p className="mt-5 max-w-4xl leading-8 text-slate-200">
+                  AI分析コメント、推定ROI-P、信頼スコア、部門間評価乖離を確認しながら、
+                  社員行動を人的資本価値として確定します。
+                </p>
+              </div>
 
-        <section className="mt-6 grid gap-4 md:grid-cols-4">
-          <KpiCard title="承認待ち" value={`${pendingPosts.length}件`} />
-          <KpiCard title="確定済みポイント" value={`${totalPoints}pt`} />
-          <KpiCard title="確定済み価値" value={`¥${totalValue.toLocaleString()}`} strong />
-          <KpiCard title="確定予定価値" value={`¥${pendingValue.toLocaleString()}`} accent />
-        </section>
-
-        {showAnimation && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur">
-            <div className="rounded-[28px] border border-emerald-400/30 bg-[#ecfdf5] px-14 py-10 text-center text-slate-950 shadow-2xl">
-              <CheckCircle2 className="mx-auto h-20 w-20 text-emerald-500" />
-              <h2 className="mt-5 text-3xl font-black">承認完了</h2>
-              <p className="mt-3 text-2xl font-black text-emerald-700">
-                {message}
-              </p>
-              <p className="mt-3 text-sm font-bold text-slate-500">
-                人的資本価値として反映されました
-              </p>
+              <div className="flex shrink-0">
+                <LogoutButton />
+              </div>
             </div>
-          </div>
-        )}
+          </header>
 
-        {message && !showAnimation && (
-          <div className="fixed right-6 top-6 z-50 rounded-2xl bg-white px-6 py-4 font-black text-slate-950 shadow-2xl">
-            {message}
-          </div>
-        )}
+          <section className="mt-6 grid gap-4 md:grid-cols-4">
+            <KpiCard title="承認待ち" value={`${pendingPosts.length}件`} />
+            <KpiCard title="確定済みポイント" value={`${totalPoints}pt`} />
+            <KpiCard
+              title="確定済み価値"
+              value={`¥${totalValue.toLocaleString()}`}
+              strong
+            />
+            <KpiCard
+              title="確定予定価値"
+              value={`¥${pendingValue.toLocaleString()}`}
+              accent
+            />
+          </section>
 
-        <PostSection
-          title="承認待ち"
-          subtitle="AI分析コメント、推定ROI-P、信頼度、部門平均との差を確認し、評価の妥当性を判断します。"
-          statusLabel="未承認"
-          tone="amber"
-          posts={pendingPosts}
-          emptyMessage="承認待ちの投稿はありません。"
-          selectedPoints={selectedPoints}
-          setSelectedPoints={setSelectedPoints}
-          comments={comments}
-          setComments={setComments}
-          approvePost={approvePost}
-          rejectPost={rejectPost}
-          mode="pending"
-        />
+          {showAnimation && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur">
+              <div className="rounded-[28px] border border-emerald-400/30 bg-[#ecfdf5] px-14 py-10 text-center text-slate-950 shadow-2xl">
+                <CheckCircle2 className="mx-auto h-20 w-20 text-emerald-500" />
+                <h2 className="mt-5 text-3xl font-black">承認完了</h2>
+                <p className="mt-3 text-2xl font-black text-emerald-700">
+                  {message}
+                </p>
+                <p className="mt-3 text-sm font-bold text-slate-500">
+                  人的資本価値として反映されました
+                </p>
+              </div>
+            </div>
+          )}
 
-        <PostSection
-          title="承認済み"
-          subtitle="人的資本価値として確定済みの投稿です。AI分析と上司評価が紐づいた状態で確認できます。"
-          statusLabel="価値確定済み"
-          tone="emerald"
-          posts={approvedPosts}
-          emptyMessage="承認済みの投稿はまだありません。"
-          selectedPoints={selectedPoints}
-          setSelectedPoints={setSelectedPoints}
-          comments={comments}
-          setComments={setComments}
-          approvePost={approvePost}
-          rejectPost={rejectPost}
-          mode="approved"
-        />
+          {message && !showAnimation && (
+            <div className="fixed right-6 top-6 z-50 rounded-2xl bg-white px-6 py-4 font-black text-slate-950 shadow-2xl">
+              {message}
+            </div>
+          )}
 
-        <PostSection
-          title="差戻し"
-          subtitle="承認されなかった投稿です。必要に応じて再投稿対象にします。"
-          statusLabel="差戻し済み"
-          tone="slate"
-          posts={rejectedPosts}
-          emptyMessage="差戻し投稿はありません。"
-          selectedPoints={selectedPoints}
-          setSelectedPoints={setSelectedPoints}
-          comments={comments}
-          setComments={setComments}
-          approvePost={approvePost}
-          rejectPost={rejectPost}
-          mode="rejected"
-        />
-      </section>
-    </main>
+          <PostSection
+            title="承認待ち"
+            subtitle="AI分析コメント、推定ROI-P、信頼度、部門平均との差を確認し、評価の妥当性を判断します。"
+            statusLabel="未承認"
+            tone="amber"
+            posts={pendingPosts}
+            emptyMessage="承認待ちの投稿はありません。"
+            selectedPoints={selectedPoints}
+            setSelectedPoints={setSelectedPoints}
+            comments={comments}
+            setComments={setComments}
+            approvePost={approvePost}
+            rejectPost={rejectPost}
+            mode="pending"
+          />
+
+          <PostSection
+            title="承認済み"
+            subtitle="人的資本価値として確定済みの投稿です。AI分析と上司評価が紐づいた状態で確認できます。"
+            statusLabel="価値確定済み"
+            tone="emerald"
+            posts={approvedPosts}
+            emptyMessage="承認済みの投稿はまだありません。"
+            selectedPoints={selectedPoints}
+            setSelectedPoints={setSelectedPoints}
+            comments={comments}
+            setComments={setComments}
+            approvePost={approvePost}
+            rejectPost={rejectPost}
+            mode="approved"
+          />
+
+          <PostSection
+            title="差戻し"
+            subtitle="承認されなかった投稿です。必要に応じて再投稿対象にします。"
+            statusLabel="差戻し済み"
+            tone="slate"
+            posts={rejectedPosts}
+            emptyMessage="差戻し投稿はありません。"
+            selectedPoints={selectedPoints}
+            setSelectedPoints={setSelectedPoints}
+            comments={comments}
+            setComments={setComments}
+            approvePost={approvePost}
+            rejectPost={rejectPost}
+            mode="rejected"
+          />
+        </section>
+      </main>
+    </AuthGuard>
   );
 }
 
@@ -412,13 +438,15 @@ function PostSection({
     tone === "amber"
       ? "border-amber-400/30 bg-amber-400/10 text-amber-300"
       : tone === "emerald"
-      ? "border-emerald-400/30 bg-emerald-400/10 text-emerald-300"
-      : "border-slate-400/20 bg-slate-400/10 text-slate-300";
+        ? "border-emerald-400/30 bg-emerald-400/10 text-emerald-300"
+        : "border-slate-400/20 bg-slate-400/10 text-slate-300";
 
   return (
     <section className="mt-6 rounded-[28px] border border-white/10 bg-[#0b1528] p-7 shadow-2xl">
       <div className="mb-6">
-        <p className={`inline-flex rounded-full border px-4 py-2 text-sm font-black ${toneClass}`}>
+        <p
+          className={`inline-flex rounded-full border px-4 py-2 text-sm font-black ${toneClass}`}
+        >
           {statusLabel}：{posts.length}件
         </p>
 
@@ -487,9 +515,13 @@ function PostCard({
           <div className="flex flex-wrap gap-2">
             <Badge color="sky">{post.department || "未設定"}</Badge>
             <Badge color="emerald">{category}</Badge>
-            {post.human_action && <Badge color="emerald">{post.human_action}</Badge>}
+            {post.human_action && (
+              <Badge color="emerald">{post.human_action}</Badge>
+            )}
             {mode === "pending" && <Badge color="amber">承認待ち</Badge>}
-            {mode === "approved" && <Badge color="emerald">価値確定済み</Badge>}
+            {mode === "approved" && (
+              <Badge color="emerald">価値確定済み</Badge>
+            )}
             {mode === "rejected" && <Badge color="slate">差戻し済み</Badge>}
           </div>
 
@@ -500,7 +532,9 @@ function PostCard({
           <div className="mt-3 grid gap-1 text-sm font-bold text-slate-400">
             <p>投稿者：{post.employee_name || "テスト社員"}</p>
             <p>投稿日：{formatDate(post.created_at)}</p>
-            {mode !== "pending" && <p>評価日：{formatDate(post.reviewed_at)}</p>}
+            {mode !== "pending" && (
+              <p>評価日：{formatDate(post.reviewed_at)}</p>
+            )}
           </div>
         </div>
 
@@ -577,7 +611,9 @@ function PostCard({
           この行動は {confirmedPoints}pt / ¥
           {confirmedValue.toLocaleString()} として価値確定済みです。
           {post.manager_comment && (
-            <p className="mt-2 text-emerald-100">上司コメント：{post.manager_comment}</p>
+            <p className="mt-2 text-emerald-100">
+              上司コメント：{post.manager_comment}
+            </p>
           )}
         </div>
       )}
@@ -586,7 +622,9 @@ function PostCard({
         <div className="mt-5 rounded-2xl border border-slate-400/20 bg-slate-400/10 p-4 text-sm font-bold text-slate-300">
           この行動は差戻し済みです。
           {post.manager_comment && (
-            <p className="mt-2 text-slate-200">上司コメント：{post.manager_comment}</p>
+            <p className="mt-2 text-slate-200">
+              上司コメント：{post.manager_comment}
+            </p>
           )}
         </div>
       )}
@@ -618,8 +656,12 @@ function AiCommentPanel({
           {typeof post.confidence_score === "number" ? "%" : ""}
         </Badge>
 
-        {post.organization_impact && <Badge color="sky">{post.organization_impact}</Badge>}
-        {post.business_impact && <Badge color="amber">{post.business_impact}</Badge>}
+        {post.organization_impact && (
+          <Badge color="sky">{post.organization_impact}</Badge>
+        )}
+        {post.business_impact && (
+          <Badge color="amber">{post.business_impact}</Badge>
+        )}
       </div>
 
       <div className="mt-4">
@@ -716,7 +758,11 @@ function InsightRow({
   return (
     <div className="flex items-center justify-between gap-3">
       <span className="text-xs font-bold text-slate-400">{label}</span>
-      <span className={`text-sm font-black ${alert ? "text-amber-300" : "text-white"}`}>
+      <span
+        className={`text-sm font-black ${
+          alert ? "text-amber-300" : "text-white"
+        }`}
+      >
         {value}
       </span>
     </div>
@@ -763,13 +809,15 @@ function Badge({
     color === "sky"
       ? "border-sky-400/30 bg-sky-400/10 text-sky-300"
       : color === "emerald"
-      ? "border-emerald-400/30 bg-emerald-400/10 text-emerald-300"
-      : color === "amber"
-      ? "border-amber-400/30 bg-amber-400/10 text-amber-300"
-      : "border-slate-400/20 bg-slate-400/10 text-slate-300";
+        ? "border-emerald-400/30 bg-emerald-400/10 text-emerald-300"
+        : color === "amber"
+          ? "border-amber-400/30 bg-amber-400/10 text-amber-300"
+          : "border-slate-400/20 bg-slate-400/10 text-slate-300";
 
   return (
-    <span className={`inline-flex rounded-full border px-3 py-1 text-xs font-black ${colorClass}`}>
+    <span
+      className={`inline-flex rounded-full border px-3 py-1 text-xs font-black ${colorClass}`}
+    >
       {children}
     </span>
   );

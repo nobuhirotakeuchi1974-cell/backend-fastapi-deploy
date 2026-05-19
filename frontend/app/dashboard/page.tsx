@@ -1,5 +1,7 @@
 "use client";
 
+import LogoutButton from "../components/LogoutButton";
+import AuthGuard from "../components/AuthGuard";
 import {
   useEffect,
   useMemo,
@@ -197,7 +199,9 @@ export default function DashboardPage() {
         }
       } catch (error) {
         console.error("dashboard fetch error", error);
-        setErrorMessage("Dashboard API取得に失敗しました。backend起動・JWT・CORSを確認してください。");
+        setErrorMessage(
+          "Dashboard API取得に失敗しました。backend起動・JWT・CORSを確認してください。"
+        );
       } finally {
         setLoading(false);
       }
@@ -263,298 +267,332 @@ export default function DashboardPage() {
 
   if (loading) {
     return (
-      <main style={styles.page}>
-        <section style={styles.container}>
-          <p style={styles.kicker}>HUMAN CAPITAL OS</p>
-          <h1 style={styles.title}>Dashboardを読み込み中...</h1>
-        </section>
-      </main>
+      <AuthGuard>
+        <main style={styles.page}>
+          <section style={styles.container}>
+            <p style={styles.kicker}>HUMAN CAPITAL OS</p>
+            <h1 style={styles.title}>Dashboardを読み込み中...</h1>
+          </section>
+        </main>
+      </AuthGuard>
     );
   }
 
   return (
-    <main style={styles.page}>
-      <section style={styles.container}>
-        {errorMessage && (
-          <div style={styles.errorBox}>
-            {errorMessage}
-          </div>
-        )}
+    <AuthGuard>
+      <main style={styles.page}>
+        <section style={styles.container}>
+          {errorMessage && <div style={styles.errorBox}>{errorMessage}</div>}
 
-        <div style={styles.hero}>
-          <p style={styles.kicker}>HUMAN CAPITAL OS</p>
-          <h1 style={styles.title}>
-            現場⇔経営をつなぎ、
-            <br />
-            現場を動かす人的資本OS
-          </h1>
-          <p style={styles.description}>
-            現場の挑戦行動を、AI補完・上司評価・ROI換算で経営判断へ接続します。
-          </p>
-        </div>
-
-        <div style={styles.summaryGrid}>
-          {summaryCards.map((card) => (
-            <Card key={card.title}>
-              <p style={styles.cardLabel}>{card.title}</p>
-              <p style={styles.cardValue}>{card.value}</p>
-              <p style={styles.cardSub}>{card.sub}</p>
-            </Card>
-          ))}
-        </div>
-
-        <div style={styles.twoColumn}>
-          <Panel title="KGI進捗" tag="KGI">
-            <div style={styles.kgiTop}>
-              <div>
-                <p style={styles.bigValue}>{achievementRate}%</p>
-                <p style={styles.muted}>
-                  {currentRoiPoints.toLocaleString()}P /{" "}
-                  {targetRoiPoints.toLocaleString()}P
-                </p>
-              </div>
-              <div style={styles.badge}>
-                目標 {formatMoney(summary?.target_value ?? 600000000)}
-              </div>
-            </div>
-
-            <Progress value={Number(achievementRate)} />
-
-            <div style={styles.miniGrid}>
-              <MiniCard label="現在実績" value={formatMoney(totalFinancial)} />
-              <MiniCard label="承認済み" value={`${summary?.approved ?? 0}件`} />
-              <MiniCard label="AI信頼度" value={`${averageConfidence}%`} />
-            </div>
-          </Panel>
-
-          <Panel title="価値変換ロジック" tag="LOGIC">
-            <FlowItem step="01" title="現場の行動" text="挑戦・改善・共有を短文で入力" />
-            <FlowItem step="02" title="AI補完＋上司確認" text="AIが意味づけし、人が妥当性を確認" />
-            <FlowItem step="03" title="経営判断へ接続" text="支援優先度・ROI-Pとして可視化" />
-          </Panel>
-        </div>
-
-        <Panel title="要注意部門ランキング" tag="MANAGEMENT FOCUS">
-          <p style={styles.panelLead}>経営が優先的に支援すべき部門</p>
-
-          <div style={styles.attentionList}>
-            {attentionDepartments.length === 0 ? (
-              <div style={styles.emptyBox}>要注意部門データがまだありません。</div>
-            ) : (
-              attentionDepartments.slice(0, 4).map((dept, index) => (
-                <button
-                  key={`${dept.department}-${index}`}
-                  type="button"
-                  style={{
-                    ...styles.attentionCard,
-                    ...(selectedDepartment === dept.department
-                      ? styles.attentionCardSelected
-                      : {}),
-                  }}
-                  onClick={() =>
-                    setSelectedDepartment(normalizeDepartmentName(dept.department))
-                  }
-                >
-                  <div style={styles.attentionHeader}>
-                    <div>
-                      <p style={styles.attentionRank}>#{index + 1}</p>
-                      <h3 style={styles.attentionDept}>{dept.department}</h3>
-                    </div>
-
-                    <span
-                      style={{
-                        ...styles.attentionBadge,
-                        ...(dept.level === "high"
-                          ? styles.attentionHigh
-                          : dept.level === "middle"
-                            ? styles.attentionMiddle
-                            : styles.attentionLow),
-                      }}
-                    >
-                      {dept.label}
-                    </span>
-                  </div>
-
-                  <div style={styles.attentionMetrics}>
-                    <div style={styles.attentionMetricBox}>
-                      <span>未承認</span>
-                      <strong>{dept.pending_count}件</strong>
-                    </div>
-                    <div style={styles.attentionMetricBox}>
-                      <span>投稿</span>
-                      <strong>{dept.post_count}件</strong>
-                    </div>
-                    <div style={styles.attentionMetricBox}>
-                      <span>ROI-P</span>
-                      <strong>{dept.total_points}P</strong>
-                    </div>
-                  </div>
-
-                  <p style={styles.attentionReason}>{dept.reason}</p>
-
-                  <div style={styles.recommendBox}>
-                    <p style={styles.recommendTitle}>推奨支援アクション</p>
-                    <div style={styles.recommendList}>
-                      {dept.recommended_actions?.map((action, idx) => (
-                        <span key={idx} style={styles.recommendTag}>
-                          {action}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                </button>
-              ))
-            )}
-          </div>
-        </Panel>
-
-        <Panel title="部門別アクション詳細" tag="FIELD ACTION">
-          <div style={styles.filterBar}>
+          <div
+            style={{
+              ...styles.hero,
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "flex-start",
+              gap: "24px",
+            }}
+          >
             <div>
-              <p style={styles.filterLabel}>対象部門</p>
-              <select
-                value={selectedDepartment}
-                onChange={(event) =>
-                  setSelectedDepartment(
-                    normalizeDepartmentName(event.target.value)
-                  )
-                }
-                style={styles.select}
-              >
-                {departmentOptions.map((dept) => (
-                  <option key={dept} value={dept}>
-                    {dept}
-                  </option>
-                ))}
-              </select>
+              <p style={styles.kicker}>HUMAN CAPITAL OS</p>
+              <h1 style={styles.title}>
+                現場⇔経営をつなぎ、
+                <br />
+                現場を動かす人的資本OS
+              </h1>
+              <p style={styles.description}>
+                現場の挑戦行動を、AI補完・上司評価・ROI換算で経営判断へ接続します。
+              </p>
             </div>
 
-            <p style={styles.filterNote}>
-              要注意部門の現場投稿・上司評価・AI分析を確認
-            </p>
+            <div style={{ flexShrink: 0 }}>
+              <LogoutButton />
+            </div>
           </div>
 
-          <div style={styles.aiInsightList}>
-            {filteredPosts.length === 0 ? (
-              <div style={styles.emptyBox}>
-                選択した部門の投稿データがありません。
-              </div>
-            ) : (
-              filteredPosts.map((post) => (
-                <div key={post.id} style={styles.aiInsightCard}>
-                  <div style={styles.aiInsightTop}>
-                    <div>
-                      <strong style={styles.postName}>{post.employee_name}</strong>
-                      <span style={styles.aiInsightMeta}>
-                        {normalizeDepartmentName(post.department)} /{" "}
-                        {statusLabel(post.status)}
-                      </span>
-                    </div>
+          <div style={styles.summaryGrid}>
+            {summaryCards.map((card) => (
+              <Card key={card.title}>
+                <p style={styles.cardLabel}>{card.title}</p>
+                <p style={styles.cardValue}>{card.value}</p>
+                <p style={styles.cardSub}>{card.sub}</p>
+              </Card>
+            ))}
+          </div>
 
-                    <div style={styles.aiBadgeGroup}>
-                      <span style={styles.aiBadge}>
-                        {post.manager_points ?? post.roi_points}P
-                      </span>
+          <div style={styles.twoColumn}>
+            <Panel title="KGI進捗" tag="KGI">
+              <div style={styles.kgiTop}>
+                <div>
+                  <p style={styles.bigValue}>{achievementRate}%</p>
+                  <p style={styles.muted}>
+                    {currentRoiPoints.toLocaleString()}P /{" "}
+                    {targetRoiPoints.toLocaleString()}P
+                  </p>
+                </div>
+                <div style={styles.badge}>
+                  目標 {formatMoney(summary?.target_value ?? 600000000)}
+                </div>
+              </div>
+
+              <Progress value={Number(achievementRate)} />
+
+              <div style={styles.miniGrid}>
+                <MiniCard label="現在実績" value={formatMoney(totalFinancial)} />
+                <MiniCard label="承認済み" value={`${summary?.approved ?? 0}件`} />
+                <MiniCard label="AI信頼度" value={`${averageConfidence}%`} />
+              </div>
+            </Panel>
+
+            <Panel title="価値変換ロジック" tag="LOGIC">
+              <FlowItem
+                step="01"
+                title="現場の行動"
+                text="挑戦・改善・共有を短文で入力"
+              />
+              <FlowItem
+                step="02"
+                title="AI補完＋上司確認"
+                text="AIが意味づけし、人が妥当性を確認"
+              />
+              <FlowItem
+                step="03"
+                title="経営判断へ接続"
+                text="支援優先度・ROI-Pとして可視化"
+              />
+            </Panel>
+          </div>
+
+          <Panel title="要注意部門ランキング" tag="MANAGEMENT FOCUS">
+            <p style={styles.panelLead}>経営が優先的に支援すべき部門</p>
+
+            <div style={styles.attentionList}>
+              {attentionDepartments.length === 0 ? (
+                <div style={styles.emptyBox}>
+                  要注意部門データがまだありません。
+                </div>
+              ) : (
+                attentionDepartments.slice(0, 4).map((dept, index) => (
+                  <button
+                    key={`${dept.department}-${index}`}
+                    type="button"
+                    style={{
+                      ...styles.attentionCard,
+                      ...(selectedDepartment === dept.department
+                        ? styles.attentionCardSelected
+                        : {}),
+                    }}
+                    onClick={() =>
+                      setSelectedDepartment(
+                        normalizeDepartmentName(dept.department)
+                      )
+                    }
+                  >
+                    <div style={styles.attentionHeader}>
+                      <div>
+                        <p style={styles.attentionRank}>#{index + 1}</p>
+                        <h3 style={styles.attentionDept}>{dept.department}</h3>
+                      </div>
+
                       <span
                         style={{
-                          ...styles.aiBadge,
-                          ...getConfidenceColor(post.confidence_score),
+                          ...styles.attentionBadge,
+                          ...(dept.level === "high"
+                            ? styles.attentionHigh
+                            : dept.level === "middle"
+                              ? styles.attentionMiddle
+                              : styles.attentionLow),
                         }}
                       >
-                        信頼度 {post.confidence_score}%
+                        {dept.label}
                       </span>
                     </div>
-                  </div>
 
-                  <div style={styles.detailBlock}>
-                    <span style={styles.detailLabel}>社員入力</span>
-                    <p style={styles.aiBehavior}>{post.behavior}</p>
-                  </div>
-
-                  <div style={styles.detailGrid}>
-                    <div style={styles.aiCommentBox}>
-                      <span style={styles.aiLabel}>AI分析</span>
-                      <p>{post.ai_comment || "AIコメント未生成"}</p>
-                    </div>
-
-                    <div style={styles.managerCommentBox}>
-                      <span style={styles.managerLabel}>上司コメント</span>
-                      <p>{post.manager_comment || "上司コメント未入力"}</p>
-                    </div>
-                  </div>
-                </div>
-              ))
-            )}
-          </div>
-        </Panel>
-
-        <div style={styles.twoColumn}>
-          <Panel title="部門間評価乖離" tag="BIAS ALERT">
-            <div style={styles.biasAlertGrid}>
-              {departmentBiasAlerts.length === 0 ? (
-                <div style={styles.emptyBox}>評価乖離アラートはありません。</div>
-              ) : (
-                departmentBiasAlerts.slice(0, 3).map((item, index) => (
-                  <div
-                    key={index}
-                    style={{
-                      ...styles.biasAlertCard,
-                      ...(Math.abs(item.diff) >= 30
-                        ? styles.biasAlertWarning
-                        : styles.biasAlertNormal),
-                    }}
-                  >
-                    <div style={styles.biasAlertTop}>
-                      <div>
-                        <p style={styles.biasDept}>
-                          {normalizeDepartmentName(item.department)} /{" "}
-                          {item.category}
-                        </p>
-                        <strong style={styles.biasDiff}>
-                          {item.diff > 0 ? "+" : ""}
-                          {item.diff}%
-                        </strong>
+                    <div style={styles.attentionMetrics}>
+                      <div style={styles.attentionMetricBox}>
+                        <span>未承認</span>
+                        <strong>{dept.pending_count}件</strong>
                       </div>
-                      <div style={styles.biasBadge}>{item.risk}</div>
+                      <div style={styles.attentionMetricBox}>
+                        <span>投稿</span>
+                        <strong>{dept.post_count}件</strong>
+                      </div>
+                      <div style={styles.attentionMetricBox}>
+                        <span>ROI-P</span>
+                        <strong>{dept.total_points}P</strong>
+                      </div>
                     </div>
-                    <p style={styles.biasDetail}>{item.detail}</p>
+
+                    <p style={styles.attentionReason}>{dept.reason}</p>
+
+                    <div style={styles.recommendBox}>
+                      <p style={styles.recommendTitle}>推奨支援アクション</p>
+                      <div style={styles.recommendList}>
+                        {dept.recommended_actions?.map((action, idx) => (
+                          <span key={idx} style={styles.recommendTag}>
+                            {action}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  </button>
+                ))
+              )}
+            </div>
+          </Panel>
+
+          <Panel title="部門別アクション詳細" tag="FIELD ACTION">
+            <div style={styles.filterBar}>
+              <div>
+                <p style={styles.filterLabel}>対象部門</p>
+                <select
+                  value={selectedDepartment}
+                  onChange={(event) =>
+                    setSelectedDepartment(
+                      normalizeDepartmentName(event.target.value)
+                    )
+                  }
+                  style={styles.select}
+                >
+                  {departmentOptions.map((dept) => (
+                    <option key={dept} value={dept}>
+                      {dept}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <p style={styles.filterNote}>
+                要注意部門の現場投稿・上司評価・AI分析を確認
+              </p>
+            </div>
+
+            <div style={styles.aiInsightList}>
+              {filteredPosts.length === 0 ? (
+                <div style={styles.emptyBox}>
+                  選択した部門の投稿データがありません。
+                </div>
+              ) : (
+                filteredPosts.map((post) => (
+                  <div key={post.id} style={styles.aiInsightCard}>
+                    <div style={styles.aiInsightTop}>
+                      <div>
+                        <strong style={styles.postName}>
+                          {post.employee_name}
+                        </strong>
+                        <span style={styles.aiInsightMeta}>
+                          {normalizeDepartmentName(post.department)} /{" "}
+                          {statusLabel(post.status)}
+                        </span>
+                      </div>
+
+                      <div style={styles.aiBadgeGroup}>
+                        <span style={styles.aiBadge}>
+                          {post.manager_points ?? post.roi_points}P
+                        </span>
+                        <span
+                          style={{
+                            ...styles.aiBadge,
+                            ...getConfidenceColor(post.confidence_score),
+                          }}
+                        >
+                          信頼度 {post.confidence_score}%
+                        </span>
+                      </div>
+                    </div>
+
+                    <div style={styles.detailBlock}>
+                      <span style={styles.detailLabel}>社員入力</span>
+                      <p style={styles.aiBehavior}>{post.behavior}</p>
+                    </div>
+
+                    <div style={styles.detailGrid}>
+                      <div style={styles.aiCommentBox}>
+                        <span style={styles.aiLabel}>AI分析</span>
+                        <p>{post.ai_comment || "AIコメント未生成"}</p>
+                      </div>
+
+                      <div style={styles.managerCommentBox}>
+                        <span style={styles.managerLabel}>上司コメント</span>
+                        <p>{post.manager_comment || "上司コメント未入力"}</p>
+                      </div>
+                    </div>
                   </div>
                 ))
               )}
             </div>
           </Panel>
 
-          <Panel title="ROIトレンド" tag="TREND">
-            <div style={styles.chartBox}>
-              {roiTrendData.length === 0 ? (
-                <div style={styles.emptyBox}>ROIトレンドデータがまだありません。</div>
-              ) : (
-                <ResponsiveContainer width="100%" height={300}>
-                  <LineChart data={roiTrendData}>
-                    <CartesianGrid stroke="rgba(148,163,184,0.12)" />
-                    <XAxis dataKey="month" stroke="#94a3b8" />
-                    <YAxis stroke="#94a3b8" />
-                    <Tooltip
-                      contentStyle={styles.tooltip}
-                      labelStyle={{ color: "#e5e7eb" }}
-                      formatter={(value) => [`${value}P`, "ROI-P"]}
-                    />
-                    <Line
-                      type="monotone"
-                      dataKey="points"
-                      stroke="#10b981"
-                      strokeWidth={4}
-                      dot={{ r: 5 }}
-                      activeDot={{ r: 8 }}
-                    />
-                  </LineChart>
-                </ResponsiveContainer>
-              )}
-            </div>
-          </Panel>
-        </div>
-      </section>
-    </main>
+          <div style={styles.twoColumn}>
+            <Panel title="部門間評価乖離" tag="BIAS ALERT">
+              <div style={styles.biasAlertGrid}>
+                {departmentBiasAlerts.length === 0 ? (
+                  <div style={styles.emptyBox}>評価乖離アラートはありません。</div>
+                ) : (
+                  departmentBiasAlerts.slice(0, 3).map((item, index) => (
+                    <div
+                      key={index}
+                      style={{
+                        ...styles.biasAlertCard,
+                        ...(Math.abs(item.diff) >= 30
+                          ? styles.biasAlertWarning
+                          : styles.biasAlertNormal),
+                      }}
+                    >
+                      <div style={styles.biasAlertTop}>
+                        <div>
+                          <p style={styles.biasDept}>
+                            {normalizeDepartmentName(item.department)} /{" "}
+                            {item.category}
+                          </p>
+                          <strong style={styles.biasDiff}>
+                            {item.diff > 0 ? "+" : ""}
+                            {item.diff}%
+                          </strong>
+                        </div>
+                        <div style={styles.biasBadge}>{item.risk}</div>
+                      </div>
+                      <p style={styles.biasDetail}>{item.detail}</p>
+                    </div>
+                  ))
+                )}
+              </div>
+            </Panel>
+
+            <Panel title="ROIトレンド" tag="TREND">
+              <div style={styles.chartBox}>
+                {roiTrendData.length === 0 ? (
+                  <div style={styles.emptyBox}>
+                    ROIトレンドデータがまだありません。
+                  </div>
+                ) : (
+                  <ResponsiveContainer width="100%" height={300}>
+                    <LineChart data={roiTrendData}>
+                      <CartesianGrid stroke="rgba(148,163,184,0.12)" />
+                      <XAxis dataKey="month" stroke="#94a3b8" />
+                      <YAxis stroke="#94a3b8" />
+                      <Tooltip
+                        contentStyle={styles.tooltip}
+                        labelStyle={{ color: "#e5e7eb" }}
+                        formatter={(value) => [`${value}P`, "ROI-P"]}
+                      />
+                      <Line
+                        type="monotone"
+                        dataKey="points"
+                        stroke="#10b981"
+                        strokeWidth={4}
+                        dot={{ r: 5 }}
+                        activeDot={{ r: 8 }}
+                      />
+                    </LineChart>
+                  </ResponsiveContainer>
+                )}
+              </div>
+            </Panel>
+          </div>
+        </section>
+      </main>
+    </AuthGuard>
   );
 }
 
@@ -670,7 +708,9 @@ function MiniCard({ label, value }: { label: string; value: string }) {
 function Progress({ value }: { value: number }) {
   return (
     <div style={styles.progressBase}>
-      <div style={{ ...styles.progressBar, width: `${Math.min(value, 100)}%` }} />
+      <div
+        style={{ ...styles.progressBar, width: `${Math.min(value, 100)}%` }}
+      />
     </div>
   );
 }
