@@ -8,7 +8,7 @@ import type { Dispatch, SetStateAction, ReactNode } from "react";
 import { CheckCircle2 } from "lucide-react";
 
 const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_BASE_URL || "http://127.0.0.1:8002";
+  process.env.NEXT_PUBLIC_API_BASE_URL || "https://tech0-gen-11-step3-2-py-62.azurewebsites.net";
 
 const VALUE_PER_POINT = 10000;
 
@@ -38,14 +38,14 @@ const pointOptions = [1, 5, 10];
 const ROLE: "manager" | "employee" = "manager";
 
 function normalizeCategory(category?: string) {
-  const raw = category ?? "未分類";
+  const raw = category ?? "未刁E��E;
   const normalized = String(raw).toLowerCase();
 
   if (normalized.includes("challenge") || normalized.includes("挑戦"))
     return "挑戦";
   if (
     normalized.includes("improvement") ||
-    normalized.includes("改善") ||
+    normalized.includes("改喁E) ||
     normalized.includes("productivity") ||
     normalized.includes("生産")
   ) {
@@ -54,12 +54,12 @@ function normalizeCategory(category?: string) {
   if (
     normalized.includes("support") ||
     normalized.includes("支援") ||
-    normalized.includes("助け")
+    normalized.includes("助ぁE)
   ) {
-    return "助け合い";
+    return "助け合ぁE;
   }
-  if (normalized.includes("learning") || normalized.includes("学習"))
-    return "学習";
+  if (normalized.includes("learning") || normalized.includes("学翁E))
+    return "学翁E;
 
   return raw;
 }
@@ -77,19 +77,19 @@ function getAiRecommendPoint(post: Post) {
   const category = normalizeCategory(post.category);
   if (category === "挑戦") return 10;
   if (category === "生産性") return 10;
-  if (category === "助け合い") return 5;
-  if (category === "学習") return 5;
+  if (category === "助け合ぁE) return 5;
+  if (category === "学翁E) return 5;
   return 5;
 }
 
 function getBiasInsight(post: Post) {
   const category = normalizeCategory(post.category);
-  const department = post.department || "未設定";
+  const department = post.department || "未設宁E;
 
   const biasTable: Record<string, Record<string, number>> = {
-    営業: { 挑戦: 42, 生産性: 18, 助け合い: 12, 学習: -8 },
-    本社: { 挑戦: -14, 生産性: -6, 助け合い: 10, 学習: -31 },
-    現場: { 挑戦: 8, 生産性: 34, 助け合い: 16, 学習: 6 },
+    営業: { 挑戦: 42, 生産性: 18, 助け合ぁE 12, 学翁E -8 },
+    本社: { 挑戦: -14, 生産性: -6, 助け合ぁE 10, 学翁E -31 },
+    現場: { 挑戦: 8, 生産性: 34, 助け合ぁE 16, 学翁E 6 },
   };
 
   const diff = biasTable[department]?.[category] ?? 0;
@@ -97,9 +97,9 @@ function getBiasInsight(post: Post) {
 
   const hasEvidence =
     /\d/.test(post.behavior) ||
-    post.behavior.includes("削減") ||
+    post.behavior.includes("削渁E) ||
     post.behavior.includes("短縮") ||
-    post.behavior.includes("改善") ||
+    post.behavior.includes("改喁E) ||
     post.behavior.includes("増加");
 
   const trustScore = hasEvidence ? "B+" : "B";
@@ -107,9 +107,9 @@ function getBiasInsight(post: Post) {
   const alert =
     abs >= 30
       ? diff > 0
-        ? "高め評価傾向あり"
-        : "低め評価傾向あり"
-      : "大きな乖離なし";
+        ? "高め評価傾向あめE
+        : "低め評価傾向あめE
+      : "大きな乖離なぁE;
 
   return {
     diff,
@@ -185,7 +185,7 @@ export default function ManagerPage() {
       else setPosts([]);
     } catch (error) {
       console.error(error);
-      setMessage("投稿取得に失敗しました。backendが起動しているか確認してください。");
+      setMessage("投稿取得に失敗しました。backendが起動してぁE��か確認してください、E);
       setPosts([]);
     }
   };
@@ -198,7 +198,7 @@ export default function ManagerPage() {
     const points = selectedPoints[id] ?? 10;
     const comment =
       comments[id] ||
-      "AI分析コメント・推定ROI・信頼度を確認し、上司評価により人的資本価値として確定しました。";
+      "AI刁E��コメント�E推定ROI・信頼度を確認し、上司評価により人皁E��E��価値として確定しました、E;
 
     try {
       const res = await fetch(`${API_BASE_URL}/api/posts/${id}/review`, {
@@ -226,7 +226,7 @@ export default function ManagerPage() {
       }, 2200);
     } catch (error) {
       console.error(error);
-      setMessage("承認に失敗しました。API接続またはJWTを確認してください。");
+      setMessage("承認に失敗しました、EPI接続また�EJWTを確認してください、E);
     }
   };
 
@@ -240,7 +240,7 @@ export default function ManagerPage() {
           manager_points: 0,
           manager_comment:
             comments[id] ||
-            "AI分析内容を確認した結果、追加説明が必要と判断し差戻しました。",
+            "AI刁E��冁E��を確認した結果、追加説明が忁E��と判断し差戻しました、E,
         }),
       });
 
@@ -255,7 +255,7 @@ export default function ManagerPage() {
       setTimeout(() => setMessage(""), 2500);
     } catch (error) {
       console.error(error);
-      setMessage("差戻しに失敗しました。API接続またはJWTを確認してください。");
+      setMessage("差戻しに失敗しました、EPI接続また�EJWTを確認してください、E);
     }
   };
 
@@ -297,16 +297,16 @@ export default function ManagerPage() {
             <div className="relative z-10 flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
               <div>
                 <p className="mb-4 inline-flex rounded-full border border-emerald-400/30 bg-emerald-400/10 px-4 py-2 text-sm font-black text-emerald-300">
-                  ● Manager Review
+                  ◁EManager Review
                 </p>
 
                 <h1 className="text-4xl font-black">
-                  上司評価・価値確定ダッシュボード
+                  上司評価・価値確定ダチE��ュボ�EチE
                 </h1>
 
                 <p className="mt-5 max-w-4xl leading-8 text-slate-200">
-                  AI分析コメント、推定ROI-P、信頼スコア、部門間評価乖離を確認しながら、
-                  社員行動を人的資本価値として確定します。
+                  AI刁E��コメント、推定ROI-P、信頼スコア、E��門間評価乖離を確認しながら、E
+                  社員行動を人皁E��E��価値として確定します、E
                 </p>
               </div>
 
@@ -317,8 +317,8 @@ export default function ManagerPage() {
           </header>
 
           <section className="mt-6 grid gap-4 md:grid-cols-4">
-            <KpiCard title="承認待ち" value={`${pendingPosts.length}件`} />
-            <KpiCard title="確定済みポイント" value={`${totalPoints}pt`} />
+            <KpiCard title="承認征E��" value={`${pendingPosts.length}件`} />
+            <KpiCard title="確定済みポインチE value={`${totalPoints}pt`} />
             <KpiCard
               title="確定済み価値"
               value={`¥${totalValue.toLocaleString()}`}
@@ -335,12 +335,12 @@ export default function ManagerPage() {
             <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur">
               <div className="rounded-[28px] border border-emerald-400/30 bg-[#ecfdf5] px-14 py-10 text-center text-slate-950 shadow-2xl">
                 <CheckCircle2 className="mx-auto h-20 w-20 text-emerald-500" />
-                <h2 className="mt-5 text-3xl font-black">承認完了</h2>
+                <h2 className="mt-5 text-3xl font-black">承認完亁E/h2>
                 <p className="mt-3 text-2xl font-black text-emerald-700">
                   {message}
                 </p>
                 <p className="mt-3 text-sm font-bold text-slate-500">
-                  人的資本価値として反映されました
+                  人皁E��E��価値として反映されました
                 </p>
               </div>
             </div>
@@ -353,12 +353,12 @@ export default function ManagerPage() {
           )}
 
           <PostSection
-            title="承認待ち"
-            subtitle="AI分析コメント、推定ROI-P、信頼度、部門平均との差を確認し、評価の妥当性を判断します。"
-            statusLabel="未承認"
+            title="承認征E��"
+            subtitle="AI刁E��コメント、推定ROI-P、信頼度、E��門平坁E��の差を確認し、評価の妥当性を判断します、E
+            statusLabel="未承誁E
             tone="amber"
             posts={pendingPosts}
-            emptyMessage="承認待ちの投稿はありません。"
+            emptyMessage="承認征E��の投稿はありません、E
             selectedPoints={selectedPoints}
             setSelectedPoints={setSelectedPoints}
             comments={comments}
@@ -370,11 +370,11 @@ export default function ManagerPage() {
 
           <PostSection
             title="承認済み"
-            subtitle="人的資本価値として確定済みの投稿です。AI分析と上司評価が紐づいた状態で確認できます。"
+            subtitle="人皁E��E��価値として確定済みの投稿です、EI刁E��と上司評価が紐づぁE��状態で確認できます、E
             statusLabel="価値確定済み"
             tone="emerald"
             posts={approvedPosts}
-            emptyMessage="承認済みの投稿はまだありません。"
+            emptyMessage="承認済みの投稿はまだありません、E
             selectedPoints={selectedPoints}
             setSelectedPoints={setSelectedPoints}
             comments={comments}
@@ -385,12 +385,12 @@ export default function ManagerPage() {
           />
 
           <PostSection
-            title="差戻し"
-            subtitle="承認されなかった投稿です。必要に応じて再投稿対象にします。"
+            title="差戻ぁE
+            subtitle="承認されなかった投稿です。忁E��に応じて再投稿対象にします、E
             statusLabel="差戻し済み"
             tone="slate"
             posts={rejectedPosts}
-            emptyMessage="差戻し投稿はありません。"
+            emptyMessage="差戻し投稿はありません、E
             selectedPoints={selectedPoints}
             setSelectedPoints={setSelectedPoints}
             comments={comments}
@@ -447,7 +447,7 @@ function PostSection({
         <p
           className={`inline-flex rounded-full border px-4 py-2 text-sm font-black ${toneClass}`}
         >
-          {statusLabel}：{posts.length}件
+          {statusLabel}�E�{posts.length}件
         </p>
 
         <h2 className="mt-4 text-3xl font-black">{title}</h2>
@@ -513,12 +513,12 @@ function PostCard({
       <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap gap-2">
-            <Badge color="sky">{post.department || "未設定"}</Badge>
+            <Badge color="sky">{post.department || "未設宁E}</Badge>
             <Badge color="emerald">{category}</Badge>
             {post.human_action && (
               <Badge color="emerald">{post.human_action}</Badge>
             )}
-            {mode === "pending" && <Badge color="amber">承認待ち</Badge>}
+            {mode === "pending" && <Badge color="amber">承認征E��</Badge>}
             {mode === "approved" && (
               <Badge color="emerald">価値確定済み</Badge>
             )}
@@ -530,10 +530,10 @@ function PostCard({
           </h3>
 
           <div className="mt-3 grid gap-1 text-sm font-bold text-slate-400">
-            <p>投稿者：{post.employee_name || "テスト社員"}</p>
-            <p>投稿日：{formatDate(post.created_at)}</p>
+            <p>投稿老E��{post.employee_name || "チE��ト社員"}</p>
+            <p>投稿日�E�{formatDate(post.created_at)}</p>
             {mode !== "pending" && (
-              <p>評価日：{formatDate(post.reviewed_at)}</p>
+              <p>評価日�E�{formatDate(post.reviewed_at)}</p>
             )}
           </div>
         </div>
@@ -546,7 +546,7 @@ function PostCard({
       {mode === "pending" && (
         <>
           <div className="mt-6 rounded-3xl border border-white/10 bg-white/[0.03] p-5">
-            <p className="text-sm font-black text-slate-300">評価ポイント</p>
+            <p className="text-sm font-black text-slate-300">評価ポインチE/p>
 
             <div className="mt-4 grid gap-3 md:grid-cols-3">
               {pointOptions.map((point) => (
@@ -572,7 +572,7 @@ function PostCard({
 
             <div className="mt-4 rounded-2xl border border-emerald-400/20 bg-emerald-400/10 p-4 text-sm font-bold text-emerald-200">
               承認すると {currentPoints}pt / ¥
-              {estimatedValue.toLocaleString()} の人的資本価値として確定します。
+              {estimatedValue.toLocaleString()} の人皁E��E��価値として確定します、E
             </div>
 
             <textarea
@@ -583,7 +583,7 @@ function PostCard({
                   [post.id]: e.target.value,
                 }))
               }
-              placeholder="上司コメントを入力（例：AI分析コメントと推定ROIを確認し、妥当と判断）"
+              placeholder="上司コメントを入力（例：AI刁E��コメントと推定ROIを確認し、妥当と判断�E�E
               className="mt-4 min-h-24 w-full rounded-2xl border border-white/10 bg-[#071326] p-4 text-sm font-bold text-white outline-none placeholder:text-slate-500 focus:border-emerald-400/50"
             />
           </div>
@@ -593,14 +593,14 @@ function PostCard({
               onClick={() => approvePost(post.id)}
               className="flex-1 rounded-2xl bg-gradient-to-r from-emerald-400 to-cyan-400 px-5 py-4 font-black text-slate-950 shadow-lg shadow-emerald-500/20 transition hover:-translate-y-0.5"
             >
-              承認して価値確定
+              承認して価値確宁E
             </button>
 
             <button
               onClick={() => rejectPost(post.id)}
               className="rounded-2xl border border-white/10 bg-white/[0.03] px-5 py-4 font-black text-slate-300 transition hover:border-red-400/40 hover:text-red-300"
             >
-              差戻し
+              差戻ぁE
             </button>
           </div>
         </>
@@ -608,8 +608,8 @@ function PostCard({
 
       {mode === "approved" && (
         <div className="mt-5 rounded-2xl border border-emerald-400/20 bg-emerald-400/10 p-4 text-sm font-bold text-emerald-200">
-          この行動は {confirmedPoints}pt / ¥
-          {confirmedValue.toLocaleString()} として価値確定済みです。
+          こ�E行動は {confirmedPoints}pt / ¥
+          {confirmedValue.toLocaleString()} として価値確定済みです、E
           {post.manager_comment && (
             <p className="mt-2 text-emerald-100">
               上司コメント：{post.manager_comment}
@@ -620,7 +620,7 @@ function PostCard({
 
       {mode === "rejected" && (
         <div className="mt-5 rounded-2xl border border-slate-400/20 bg-slate-400/10 p-4 text-sm font-bold text-slate-300">
-          この行動は差戻し済みです。
+          こ�E行動は差戻し済みです、E
           {post.manager_comment && (
             <p className="mt-2 text-slate-200">
               上司コメント：{post.manager_comment}
@@ -649,7 +649,7 @@ function AiCommentPanel({
   return (
     <div className="mt-5 rounded-3xl border border-cyan-400/20 bg-cyan-400/10 p-5">
       <div className="flex flex-wrap items-center gap-2">
-        <Badge color="emerald">AI推定 {post.roi_points ?? aiPoint}P</Badge>
+        <Badge color="emerald">AI推宁E{post.roi_points ?? aiPoint}P</Badge>
 
         <Badge color="sky">
           信頼度 {post.confidence_score ?? bias.trustScore}
@@ -666,18 +666,18 @@ function AiCommentPanel({
 
       <div className="mt-4">
         <p className="text-xs font-black tracking-wider text-cyan-300">
-          AI分析コメント
+          AI刁E��コメンチE
         </p>
 
         <p className="mt-3 text-sm leading-7 text-slate-200">
-          {post.ai_comment || "人的資本行動として分析中です。"}
+          {post.ai_comment || "人皁E��E��行動として刁E��中です、E}
         </p>
       </div>
 
       <div className="mt-4 grid gap-3 md:grid-cols-3">
         <AiMetric label="推定ROI-P" value={`${post.roi_points ?? aiPoint}P`} />
         <AiMetric
-          label="推定財務効果"
+          label="推定財務効极E
           value={
             typeof post.estimated_value === "number"
               ? `¥${post.estimated_value.toLocaleString()}`
@@ -685,7 +685,7 @@ function AiCommentPanel({
           }
         />
         <AiMetric
-          label="推定削減時間"
+          label="推定削減時閁E
           value={
             typeof post.estimated_hours_saved === "number"
               ? `${post.estimated_hours_saved}h`
@@ -726,7 +726,7 @@ function BiasInsightCard({
         <InsightRow label="推奨点数" value={`${aiPoint}pt`} />
         <InsightRow label="信頼スコア" value={bias.trustScore} />
         <InsightRow
-          label="部門平均との差"
+          label="部門平坁E��の差"
           value={`${bias.diff > 0 ? "+" : ""}${bias.diff}%`}
           alert={bias.hasWarning}
         />
@@ -739,7 +739,7 @@ function BiasInsightCard({
             : "border-emerald-400/20 bg-emerald-400/10 text-emerald-200"
         }`}
       >
-        {bias.hasWarning ? "⚠ " : "✓ "}
+        {bias.hasWarning ? "⚠ " : "✁E"}
         {bias.alert}
       </div>
     </div>

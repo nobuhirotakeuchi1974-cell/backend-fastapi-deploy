@@ -31,14 +31,14 @@ export default function RankingPage() {
   const [trend, setTrend] = useState<Trend[]>([]);
 
   useEffect(() => {
-    fetch("http://127.0.0.1:8002/api/analytics/department-ranking")
+    fetch("https://tech0-gen-11-step3-2-py-62.azurewebsites.net/api/analytics/department-ranking")
       .then((res) => res.json())
       .then((data) => {
         setRankings(data.data || []);
       })
       .catch((err) => console.error("department-ranking error:", err));
 
-    fetch("http://127.0.0.1:8002/api/analytics/roi-trend")
+    fetch("https://tech0-gen-11-step3-2-py-62.azurewebsites.net/api/analytics/roi-trend")
       .then((res) => res.json())
       .then((data) => {
         setTrend(data.data || []);
@@ -129,7 +129,7 @@ export default function RankingPage() {
 
               <div className="bg-gray-50 rounded-xl p-4">
                 <p className="text-sm text-gray-500">
-                  ポイント
+                  ポインチE
                 </p>
                 <p className="text-2xl font-bold text-gray-900">
                   {item.total_points}
