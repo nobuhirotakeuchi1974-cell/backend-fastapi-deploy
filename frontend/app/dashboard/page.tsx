@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import LogoutButton from "../components/LogoutButton";
 import AuthGuard from "../components/AuthGuard";
@@ -93,14 +93,14 @@ type RoiTrendItem = {
 const API_BASE =
   process.env.NEXT_PUBLIC_API_BASE_URL || "https://tech0-gen-11-step3-2-py-62.azurewebsites.net";
 
-const ALL_DEPARTMENTS = "蜈ｨ驛ｨ髢";
+const ALL_DEPARTMENTS = "全部門";
 
 function normalizeDepartmentName(name?: string | null) {
-  const value = (name || "譛ｪ險ｭ螳・).trim();
+  const value = (name || "未設定").trim();
 
-  if (value === "蝟ｶ讌ｭ驛ｨ" || value === "蝟ｶ讌ｭ") return "蝟ｶ讌ｭ驛ｨ";
-  if (value === "譛ｬ遉ｾ" || value === "譛ｬ遉ｾ驛ｨ髢") return "譛ｬ遉ｾ";
-  if (value === "讌ｭ蜍咎°逕ｨ驛ｨ髢" || value === "讌ｭ蜍咎°逕ｨ") return "讌ｭ蜍咎°逕ｨ驛ｨ髢";
+  if (value === "営業部" || value === "営業") return "営業部";
+  if (value === "本社" || value === "本社部門") return "本社";
+  if (value === "業務運用部門" || value === "業務運用") return "業務運用部門";
 
   return value;
 }
@@ -153,7 +153,7 @@ export default function DashboardPage() {
           !roiTrendRes.ok
         ) {
           setErrorMessage(
-            `Dashboard API蜿門ｾ怜､ｱ謨・ summary=${summaryRes.status}, posts=${postsRes.status}, attention=${attentionRes.status}, trend=${roiTrendRes.status}`
+            `Dashboard API取得失敗: summary=${summaryRes.status}, posts=${postsRes.status}, attention=${attentionRes.status}, trend=${roiTrendRes.status}`
           );
           setSummary(null);
           setPosts([]);
@@ -200,7 +200,7 @@ export default function DashboardPage() {
       } catch (error) {
         console.error("dashboard fetch error", error);
         setErrorMessage(
-          "Dashboard API蜿門ｾ励↓螟ｱ謨励＠縺ｾ縺励◆縲Ｃackend襍ｷ蜍輔・JWT繝ｻCORS繧堤｢ｺ隱阪＠縺ｦ縺上□縺輔＞縲・
+          "Dashboard API取得に失敗しました。backend起動・JWT・CORSを確認してください。"
         );
       } finally {
         setLoading(false);
@@ -244,24 +244,24 @@ export default function DashboardPage() {
 
   const summaryCards = [
     {
-      title: "蜈ｨ遉ｾROI-P",
+      title: "全社ROI-P",
       value: `${currentRoiPoints.toLocaleString()}P`,
-      sub: `逶ｮ讓・${targetRoiPoints.toLocaleString()}P`,
+      sub: `目標 ${targetRoiPoints.toLocaleString()}P`,
     },
     {
-      title: "雋｡蜍吶う繝ｳ繝代け繝・,
+      title: "財務インパクト",
       value: formatMoney(totalFinancial),
-      sub: "莠ｺ逧・ｳ・悽陦悟虚繧定ｲ｡蜍呎鋤邂・,
+      sub: "人的資本行動を財務換算",
     },
     {
-      title: "驕疲・邇・,
+      title: "達成率",
       value: `${achievementRate}%`,
-      sub: "2026蟷ｴ蠎ｦKGI騾ｲ謐・,
+      sub: "2026年度KGI進捗",
     },
     {
-      title: "譛ｪ謇ｿ隱・,
-      value: `${summary?.pending ?? 0}莉ｶ`,
-      sub: "荳雁昇遒ｺ隱榊ｾ・■",
+      title: "未承認",
+      value: `${summary?.pending ?? 0}件`,
+      sub: "上司確認待ち",
     },
   ];
 
@@ -271,7 +271,7 @@ export default function DashboardPage() {
         <main style={styles.page}>
           <section style={styles.container}>
             <p style={styles.kicker}>HUMAN CAPITAL OS</p>
-            <h1 style={styles.title}>Dashboard繧定ｪｭ縺ｿ霎ｼ縺ｿ荳ｭ...</h1>
+            <h1 style={styles.title}>Dashboardを読み込み中...</h1>
           </section>
         </main>
       </AuthGuard>
@@ -296,12 +296,12 @@ export default function DashboardPage() {
             <div>
               <p style={styles.kicker}>HUMAN CAPITAL OS</p>
               <h1 style={styles.title}>
-                迴ｾ蝣ｴ竍皮ｵ悟霧繧偵▽縺ｪ縺弱・
+                現場⇔経営をつなぎ、
                 <br />
-                迴ｾ蝣ｴ繧貞虚縺九☆莠ｺ逧・ｳ・悽OS
+                現場を動かす人的資本OS
               </h1>
               <p style={styles.description}>
-                迴ｾ蝣ｴ縺ｮ謖第姶陦悟虚繧偵、I陬懷ｮ後・荳雁昇隧穂ｾ｡繝ｻROI謠帷ｮ励〒邨悟霧蛻､譁ｭ縺ｸ謗･邯壹＠縺ｾ縺吶・
+                現場の挑戦行動を、AI補完・上司評価・ROI換算で経営判断へ接続します。
               </p>
             </div>
 
@@ -321,7 +321,7 @@ export default function DashboardPage() {
           </div>
 
           <div style={styles.twoColumn}>
-            <Panel title="KGI騾ｲ謐・ tag="KGI">
+            <Panel title="KGI進捗" tag="KGI">
               <div style={styles.kgiTop}>
                 <div>
                   <p style={styles.bigValue}>{achievementRate}%</p>
@@ -331,45 +331,45 @@ export default function DashboardPage() {
                   </p>
                 </div>
                 <div style={styles.badge}>
-                  逶ｮ讓・{formatMoney(summary?.target_value ?? 600000000)}
+                  目標 {formatMoney(summary?.target_value ?? 600000000)}
                 </div>
               </div>
 
               <Progress value={Number(achievementRate)} />
 
               <div style={styles.miniGrid}>
-                <MiniCard label="迴ｾ蝨ｨ螳溽ｸｾ" value={formatMoney(totalFinancial)} />
-                <MiniCard label="謇ｿ隱肴ｸ医∩" value={`${summary?.approved ?? 0}莉ｶ`} />
-                <MiniCard label="AI菫｡鬆ｼ蠎ｦ" value={`${averageConfidence}%`} />
+                <MiniCard label="現在実績" value={formatMoney(totalFinancial)} />
+                <MiniCard label="承認済み" value={`${summary?.approved ?? 0}件`} />
+                <MiniCard label="AI信頼度" value={`${averageConfidence}%`} />
               </div>
             </Panel>
 
-            <Panel title="萓｡蛟､螟画鋤繝ｭ繧ｸ繝・け" tag="LOGIC">
+            <Panel title="価値変換ロジック" tag="LOGIC">
               <FlowItem
                 step="01"
-                title="迴ｾ蝣ｴ縺ｮ陦悟虚"
-                text="謖第姶繝ｻ謾ｹ蝟・・蜈ｱ譛峨ｒ遏ｭ譁・〒蜈･蜉・
+                title="現場の行動"
+                text="挑戦・改善・共有を短文で入力"
               />
               <FlowItem
                 step="02"
-                title="AI陬懷ｮ鯉ｼ倶ｸ雁昇遒ｺ隱・
-                text="AI縺梧э蜻ｳ縺･縺代＠縲∽ｺｺ縺悟ｦ･蠖捺ｧ繧堤｢ｺ隱・
+                title="AI補完＋上司確認"
+                text="AIが意味づけし、人が妥当性を確認"
               />
               <FlowItem
                 step="03"
-                title="邨悟霧蛻､譁ｭ縺ｸ謗･邯・
-                text="謾ｯ謠ｴ蜆ｪ蜈亥ｺｦ繝ｻROI-P縺ｨ縺励※蜿ｯ隕門喧"
+                title="経営判断へ接続"
+                text="支援優先度・ROI-Pとして可視化"
               />
             </Panel>
           </div>
 
-          <Panel title="隕∵ｳｨ諢城Κ髢繝ｩ繝ｳ繧ｭ繝ｳ繧ｰ" tag="MANAGEMENT FOCUS">
-            <p style={styles.panelLead}>邨悟霧縺悟━蜈育噪縺ｫ謾ｯ謠ｴ縺吶∋縺埼Κ髢</p>
+          <Panel title="要注意部門ランキング" tag="MANAGEMENT FOCUS">
+            <p style={styles.panelLead}>経営が優先的に支援すべき部門</p>
 
             <div style={styles.attentionList}>
               {attentionDepartments.length === 0 ? (
                 <div style={styles.emptyBox}>
-                  隕∵ｳｨ諢城Κ髢繝・・繧ｿ縺後∪縺縺ゅｊ縺ｾ縺帙ｓ縲・
+                  要注意部門データがまだありません。
                 </div>
               ) : (
                 attentionDepartments.slice(0, 4).map((dept, index) => (
@@ -410,12 +410,12 @@ export default function DashboardPage() {
 
                     <div style={styles.attentionMetrics}>
                       <div style={styles.attentionMetricBox}>
-                        <span>譛ｪ謇ｿ隱・/span>
-                        <strong>{dept.pending_count}莉ｶ</strong>
+                        <span>未承認</span>
+                        <strong>{dept.pending_count}件</strong>
                       </div>
                       <div style={styles.attentionMetricBox}>
-                        <span>謚慕ｨｿ</span>
-                        <strong>{dept.post_count}莉ｶ</strong>
+                        <span>投稿</span>
+                        <strong>{dept.post_count}件</strong>
                       </div>
                       <div style={styles.attentionMetricBox}>
                         <span>ROI-P</span>
@@ -426,7 +426,7 @@ export default function DashboardPage() {
                     <p style={styles.attentionReason}>{dept.reason}</p>
 
                     <div style={styles.recommendBox}>
-                      <p style={styles.recommendTitle}>謗ｨ螂ｨ謾ｯ謠ｴ繧｢繧ｯ繧ｷ繝ｧ繝ｳ</p>
+                      <p style={styles.recommendTitle}>推奨支援アクション</p>
                       <div style={styles.recommendList}>
                         {dept.recommended_actions?.map((action, idx) => (
                           <span key={idx} style={styles.recommendTag}>
@@ -441,10 +441,10 @@ export default function DashboardPage() {
             </div>
           </Panel>
 
-          <Panel title="驛ｨ髢蛻･繧｢繧ｯ繧ｷ繝ｧ繝ｳ隧ｳ邏ｰ" tag="FIELD ACTION">
+          <Panel title="部門別アクション詳細" tag="FIELD ACTION">
             <div style={styles.filterBar}>
               <div>
-                <p style={styles.filterLabel}>蟇ｾ雎｡驛ｨ髢</p>
+                <p style={styles.filterLabel}>対象部門</p>
                 <select
                   value={selectedDepartment}
                   onChange={(event) =>
@@ -463,14 +463,14 @@ export default function DashboardPage() {
               </div>
 
               <p style={styles.filterNote}>
-                隕∵ｳｨ諢城Κ髢縺ｮ迴ｾ蝣ｴ謚慕ｨｿ繝ｻ荳雁昇隧穂ｾ｡繝ｻAI蛻・梵繧堤｢ｺ隱・
+                要注意部門の現場投稿・上司評価・AI分析を確認
               </p>
             </div>
 
             <div style={styles.aiInsightList}>
               {filteredPosts.length === 0 ? (
                 <div style={styles.emptyBox}>
-                  驕ｸ謚槭＠縺滄Κ髢縺ｮ謚慕ｨｿ繝・・繧ｿ縺後≠繧翫∪縺帙ｓ縲・
+                  選択した部門の投稿データがありません。
                 </div>
               ) : (
                 filteredPosts.map((post) => (
@@ -496,25 +496,25 @@ export default function DashboardPage() {
                             ...getConfidenceColor(post.confidence_score),
                           }}
                         >
-                          菫｡鬆ｼ蠎ｦ {post.confidence_score}%
+                          信頼度 {post.confidence_score}%
                         </span>
                       </div>
                     </div>
 
                     <div style={styles.detailBlock}>
-                      <span style={styles.detailLabel}>遉ｾ蜩｡蜈･蜉・/span>
+                      <span style={styles.detailLabel}>社員入力</span>
                       <p style={styles.aiBehavior}>{post.behavior}</p>
                     </div>
 
                     <div style={styles.detailGrid}>
                       <div style={styles.aiCommentBox}>
-                        <span style={styles.aiLabel}>AI蛻・梵</span>
-                        <p>{post.ai_comment || "AI繧ｳ繝｡繝ｳ繝域悴逕滓・"}</p>
+                        <span style={styles.aiLabel}>AI分析</span>
+                        <p>{post.ai_comment || "AIコメント未生成"}</p>
                       </div>
 
                       <div style={styles.managerCommentBox}>
-                        <span style={styles.managerLabel}>荳雁昇繧ｳ繝｡繝ｳ繝・/span>
-                        <p>{post.manager_comment || "荳雁昇繧ｳ繝｡繝ｳ繝域悴蜈･蜉・}</p>
+                        <span style={styles.managerLabel}>上司コメント</span>
+                        <p>{post.manager_comment || "上司コメント未入力"}</p>
                       </div>
                     </div>
                   </div>
@@ -524,10 +524,10 @@ export default function DashboardPage() {
           </Panel>
 
           <div style={styles.twoColumn}>
-            <Panel title="驛ｨ髢髢楢ｩ穂ｾ｡荵夜屬" tag="BIAS ALERT">
+            <Panel title="部門間評価乖離" tag="BIAS ALERT">
               <div style={styles.biasAlertGrid}>
                 {departmentBiasAlerts.length === 0 ? (
-                  <div style={styles.emptyBox}>隧穂ｾ｡荵夜屬繧｢繝ｩ繝ｼ繝医・縺ゅｊ縺ｾ縺帙ｓ縲・/div>
+                  <div style={styles.emptyBox}>評価乖離アラートはありません。</div>
                 ) : (
                   departmentBiasAlerts.slice(0, 3).map((item, index) => (
                     <div
@@ -559,11 +559,11 @@ export default function DashboardPage() {
               </div>
             </Panel>
 
-            <Panel title="ROI繝医Ξ繝ｳ繝・ tag="TREND">
+            <Panel title="ROIトレンド" tag="TREND">
               <div style={styles.chartBox}>
                 {roiTrendData.length === 0 ? (
                   <div style={styles.emptyBox}>
-                    ROI繝医Ξ繝ｳ繝峨ョ繝ｼ繧ｿ縺後∪縺縺ゅｊ縺ｾ縺帙ｓ縲・
+                    ROIトレンドデータがまだありません。
                   </div>
                 ) : (
                   <ResponsiveContainer width="100%" height={300}>
@@ -663,15 +663,15 @@ function getConfidenceColor(score: number) {
 
 function formatMoney(value: number) {
   if (value >= 100000000) {
-    return `${(value / 100000000).toFixed(2)}蜆・・`;
+    return `${(value / 100000000).toFixed(2)}億円`;
   }
-  return `${Math.round(value / 10000).toLocaleString()}荳・・`;
+  return `${Math.round(value / 10000).toLocaleString()}万円`;
 }
 
 function statusLabel(status: string) {
-  if (status === "approved") return "謇ｿ隱肴ｸ医∩";
-  if (status === "rejected") return "蟾ｮ謌ｻ縺・;
-  return "譛ｪ謇ｿ隱・;
+  if (status === "approved") return "承認済み";
+  if (status === "rejected") return "差戻し";
+  return "未承認";
 }
 
 function Card({ children }: { children: ReactNode }) {
@@ -1214,4 +1214,3 @@ const styles: Record<string, CSSProperties> = {
     fontSize: "15px",
   },
 };
-

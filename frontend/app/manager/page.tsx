@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import AuthGuard from "../components/AuthGuard";
 import LogoutButton from "../components/LogoutButton";
@@ -38,28 +38,28 @@ const pointOptions = [1, 5, 10];
 const ROLE: "manager" | "employee" = "manager";
 
 function normalizeCategory(category?: string) {
-  const raw = category ?? "譛ｪ蛻・｡・;
+  const raw = category ?? "未分類";
   const normalized = String(raw).toLowerCase();
 
-  if (normalized.includes("challenge") || normalized.includes("謖第姶"))
-    return "謖第姶";
+  if (normalized.includes("challenge") || normalized.includes("挑戦"))
+    return "挑戦";
   if (
     normalized.includes("improvement") ||
-    normalized.includes("謾ｹ蝟・) ||
+    normalized.includes("改善") ||
     normalized.includes("productivity") ||
-    normalized.includes("逕溽肇")
+    normalized.includes("生産")
   ) {
-    return "逕溽肇諤ｧ";
+    return "生産性";
   }
   if (
     normalized.includes("support") ||
-    normalized.includes("謾ｯ謠ｴ") ||
-    normalized.includes("蜉ｩ縺・)
+    normalized.includes("支援") ||
+    normalized.includes("助け")
   ) {
-    return "蜉ｩ縺大粋縺・;
+    return "助け合い";
   }
-  if (normalized.includes("learning") || normalized.includes("蟄ｦ鄙・))
-    return "蟄ｦ鄙・;
+  if (normalized.includes("learning") || normalized.includes("学習"))
+    return "学習";
 
   return raw;
 }
@@ -75,21 +75,21 @@ function getAiRecommendPoint(post: Post) {
   }
 
   const category = normalizeCategory(post.category);
-  if (category === "謖第姶") return 10;
-  if (category === "逕溽肇諤ｧ") return 10;
-  if (category === "蜉ｩ縺大粋縺・) return 5;
-  if (category === "蟄ｦ鄙・) return 5;
+  if (category === "挑戦") return 10;
+  if (category === "生産性") return 10;
+  if (category === "助け合い") return 5;
+  if (category === "学習") return 5;
   return 5;
 }
 
 function getBiasInsight(post: Post) {
   const category = normalizeCategory(post.category);
-  const department = post.department || "譛ｪ險ｭ螳・;
+  const department = post.department || "未設定";
 
   const biasTable: Record<string, Record<string, number>> = {
-    蝟ｶ讌ｭ: { 謖第姶: 42, 逕溽肇諤ｧ: 18, 蜉ｩ縺大粋縺・ 12, 蟄ｦ鄙・ -8 },
-    譛ｬ遉ｾ: { 謖第姶: -14, 逕溽肇諤ｧ: -6, 蜉ｩ縺大粋縺・ 10, 蟄ｦ鄙・ -31 },
-    迴ｾ蝣ｴ: { 謖第姶: 8, 逕溽肇諤ｧ: 34, 蜉ｩ縺大粋縺・ 16, 蟄ｦ鄙・ 6 },
+    営業: { 挑戦: 42, 生産性: 18, 助け合い: 12, 学習: -8 },
+    本社: { 挑戦: -14, 生産性: -6, 助け合い: 10, 学習: -31 },
+    現場: { 挑戦: 8, 生産性: 34, 助け合い: 16, 学習: 6 },
   };
 
   const diff = biasTable[department]?.[category] ?? 0;
@@ -97,19 +97,19 @@ function getBiasInsight(post: Post) {
 
   const hasEvidence =
     /\d/.test(post.behavior) ||
-    post.behavior.includes("蜑頑ｸ・) ||
-    post.behavior.includes("遏ｭ邵ｮ") ||
-    post.behavior.includes("謾ｹ蝟・) ||
-    post.behavior.includes("蠅怜刈");
+    post.behavior.includes("削減") ||
+    post.behavior.includes("短縮") ||
+    post.behavior.includes("改善") ||
+    post.behavior.includes("増加");
 
   const trustScore = hasEvidence ? "B+" : "B";
 
   const alert =
     abs >= 30
       ? diff > 0
-        ? "鬮倥ａ隧穂ｾ｡蛯ｾ蜷代≠繧・
-        : "菴弱ａ隧穂ｾ｡蛯ｾ蜷代≠繧・
-      : "螟ｧ縺阪↑荵夜屬縺ｪ縺・;
+        ? "高め評価傾向あり"
+        : "低め評価傾向あり"
+      : "大きな乖離なし";
 
   return {
     diff,
@@ -141,7 +141,7 @@ export default function ManagerPage() {
             fontWeight: 900,
           }}
         >
-          繧｢繧ｯ繧ｻ繧ｹ讓ｩ髯舌′縺ゅｊ縺ｾ縺帙ｓ
+          アクセス権限がありません
         </main>
       </AuthGuard>
     );
@@ -172,7 +172,7 @@ export default function ManagerPage() {
       });
 
       if (!res.ok) {
-        setMessage(`謚慕ｨｿ蜿門ｾ励↓螟ｱ謨励＠縺ｾ縺励◆: ${res.status}`);
+        setMessage(`投稿取得に失敗しました: ${res.status}`);
         setPosts([]);
         return;
       }
@@ -185,7 +185,7 @@ export default function ManagerPage() {
       else setPosts([]);
     } catch (error) {
       console.error(error);
-      setMessage("謚慕ｨｿ蜿門ｾ励↓螟ｱ謨励＠縺ｾ縺励◆縲Ｃackend縺瑚ｵｷ蜍輔＠縺ｦ縺・ｋ縺狗｢ｺ隱阪＠縺ｦ縺上□縺輔＞縲・);
+      setMessage("投稿取得に失敗しました。backendが起動しているか確認してください。");
       setPosts([]);
     }
   };
@@ -198,7 +198,7 @@ export default function ManagerPage() {
     const points = selectedPoints[id] ?? 10;
     const comment =
       comments[id] ||
-      "AI蛻・梵繧ｳ繝｡繝ｳ繝医・謗ｨ螳啌OI繝ｻ菫｡鬆ｼ蠎ｦ繧堤｢ｺ隱阪＠縲∽ｸ雁昇隧穂ｾ｡縺ｫ繧医ｊ莠ｺ逧・ｳ・悽萓｡蛟､縺ｨ縺励※遒ｺ螳壹＠縺ｾ縺励◆縲・;
+      "AI分析コメント・推定ROI・信頼度を確認し、上司評価により人的資本価値として確定しました。";
 
     try {
       const res = await fetch(`${API_BASE_URL}/api/posts/${id}/review`, {
@@ -212,11 +212,11 @@ export default function ManagerPage() {
       });
 
       if (!res.ok) {
-        setMessage(`謇ｿ隱阪↓螟ｱ謨励＠縺ｾ縺励◆: ${res.status}`);
+        setMessage(`承認に失敗しました: ${res.status}`);
         return;
       }
 
-      setMessage(`+${points}pt / ﾂ･${(points * VALUE_PER_POINT).toLocaleString()}`);
+      setMessage(`+${points}pt / ¥${(points * VALUE_PER_POINT).toLocaleString()}`);
       setShowAnimation(true);
       await fetchPosts();
 
@@ -226,7 +226,7 @@ export default function ManagerPage() {
       }, 2200);
     } catch (error) {
       console.error(error);
-      setMessage("謇ｿ隱阪↓螟ｱ謨励＠縺ｾ縺励◆縲・PI謗･邯壹∪縺溘・JWT繧堤｢ｺ隱阪＠縺ｦ縺上□縺輔＞縲・);
+      setMessage("承認に失敗しました。API接続またはJWTを確認してください。");
     }
   };
 
@@ -240,22 +240,22 @@ export default function ManagerPage() {
           manager_points: 0,
           manager_comment:
             comments[id] ||
-            "AI蛻・梵蜀・ｮｹ繧堤｢ｺ隱阪＠縺溽ｵ先棡縲∬ｿｽ蜉隱ｬ譏弱′蠢・ｦ√→蛻､譁ｭ縺怜ｷｮ謌ｻ縺励∪縺励◆縲・,
+            "AI分析内容を確認した結果、追加説明が必要と判断し差戻しました。",
         }),
       });
 
       if (!res.ok) {
-        setMessage(`蟾ｮ謌ｻ縺励↓螟ｱ謨励＠縺ｾ縺励◆: ${res.status}`);
+        setMessage(`差戻しに失敗しました: ${res.status}`);
         return;
       }
 
-      setMessage("蟾ｮ謌ｻ縺励∪縺励◆");
+      setMessage("差戻しました");
       await fetchPosts();
 
       setTimeout(() => setMessage(""), 2500);
     } catch (error) {
       console.error(error);
-      setMessage("蟾ｮ謌ｻ縺励↓螟ｱ謨励＠縺ｾ縺励◆縲・PI謗･邯壹∪縺溘・JWT繧堤｢ｺ隱阪＠縺ｦ縺上□縺輔＞縲・);
+      setMessage("差戻しに失敗しました。API接続またはJWTを確認してください。");
     }
   };
 
@@ -297,16 +297,16 @@ export default function ManagerPage() {
             <div className="relative z-10 flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
               <div>
                 <p className="mb-4 inline-flex rounded-full border border-emerald-400/30 bg-emerald-400/10 px-4 py-2 text-sm font-black text-emerald-300">
-                  笳・Manager Review
+                  ● Manager Review
                 </p>
 
                 <h1 className="text-4xl font-black">
-                  荳雁昇隧穂ｾ｡繝ｻ萓｡蛟､遒ｺ螳壹ム繝・す繝･繝懊・繝・
+                  上司評価・価値確定ダッシュボード
                 </h1>
 
                 <p className="mt-5 max-w-4xl leading-8 text-slate-200">
-                  AI蛻・梵繧ｳ繝｡繝ｳ繝医∵耳螳啌OI-P縲∽ｿ｡鬆ｼ繧ｹ繧ｳ繧｢縲・Κ髢髢楢ｩ穂ｾ｡荵夜屬繧堤｢ｺ隱阪＠縺ｪ縺後ｉ縲・
-                  遉ｾ蜩｡陦悟虚繧剃ｺｺ逧・ｳ・悽萓｡蛟､縺ｨ縺励※遒ｺ螳壹＠縺ｾ縺吶・
+                  AI分析コメント、推定ROI-P、信頼スコア、部門間評価乖離を確認しながら、
+                  社員行動を人的資本価値として確定します。
                 </p>
               </div>
 
@@ -317,16 +317,16 @@ export default function ManagerPage() {
           </header>
 
           <section className="mt-6 grid gap-4 md:grid-cols-4">
-            <KpiCard title="謇ｿ隱榊ｾ・■" value={`${pendingPosts.length}莉ｶ`} />
-            <KpiCard title="遒ｺ螳壽ｸ医∩繝昴う繝ｳ繝・ value={`${totalPoints}pt`} />
+            <KpiCard title="承認待ち" value={`${pendingPosts.length}件`} />
+            <KpiCard title="確定済みポイント" value={`${totalPoints}pt`} />
             <KpiCard
-              title="遒ｺ螳壽ｸ医∩萓｡蛟､"
-              value={`ﾂ･${totalValue.toLocaleString()}`}
+              title="確定済み価値"
+              value={`¥${totalValue.toLocaleString()}`}
               strong
             />
             <KpiCard
-              title="遒ｺ螳壻ｺ亥ｮ壻ｾ｡蛟､"
-              value={`ﾂ･${pendingValue.toLocaleString()}`}
+              title="確定予定価値"
+              value={`¥${pendingValue.toLocaleString()}`}
               accent
             />
           </section>
@@ -335,12 +335,12 @@ export default function ManagerPage() {
             <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur">
               <div className="rounded-[28px] border border-emerald-400/30 bg-[#ecfdf5] px-14 py-10 text-center text-slate-950 shadow-2xl">
                 <CheckCircle2 className="mx-auto h-20 w-20 text-emerald-500" />
-                <h2 className="mt-5 text-3xl font-black">謇ｿ隱榊ｮ御ｺ・/h2>
+                <h2 className="mt-5 text-3xl font-black">承認完了</h2>
                 <p className="mt-3 text-2xl font-black text-emerald-700">
                   {message}
                 </p>
                 <p className="mt-3 text-sm font-bold text-slate-500">
-                  莠ｺ逧・ｳ・悽萓｡蛟､縺ｨ縺励※蜿肴丐縺輔ｌ縺ｾ縺励◆
+                  人的資本価値として反映されました
                 </p>
               </div>
             </div>
@@ -353,12 +353,12 @@ export default function ManagerPage() {
           )}
 
           <PostSection
-            title="謇ｿ隱榊ｾ・■"
-            subtitle="AI蛻・梵繧ｳ繝｡繝ｳ繝医∵耳螳啌OI-P縲∽ｿ｡鬆ｼ蠎ｦ縲・Κ髢蟷ｳ蝮・→縺ｮ蟾ｮ繧堤｢ｺ隱阪＠縲∬ｩ穂ｾ｡縺ｮ螯･蠖捺ｧ繧貞愛譁ｭ縺励∪縺吶・
-            statusLabel="譛ｪ謇ｿ隱・
+            title="承認待ち"
+            subtitle="AI分析コメント、推定ROI-P、信頼度、部門平均との差を確認し、評価の妥当性を判断します。"
+            statusLabel="未承認"
             tone="amber"
             posts={pendingPosts}
-            emptyMessage="謇ｿ隱榊ｾ・■縺ｮ謚慕ｨｿ縺ｯ縺ゅｊ縺ｾ縺帙ｓ縲・
+            emptyMessage="承認待ちの投稿はありません。"
             selectedPoints={selectedPoints}
             setSelectedPoints={setSelectedPoints}
             comments={comments}
@@ -369,12 +369,12 @@ export default function ManagerPage() {
           />
 
           <PostSection
-            title="謇ｿ隱肴ｸ医∩"
-            subtitle="莠ｺ逧・ｳ・悽萓｡蛟､縺ｨ縺励※遒ｺ螳壽ｸ医∩縺ｮ謚慕ｨｿ縺ｧ縺吶・I蛻・梵縺ｨ荳雁昇隧穂ｾ｡縺檎ｴ舌▼縺・◆迥ｶ諷九〒遒ｺ隱阪〒縺阪∪縺吶・
-            statusLabel="萓｡蛟､遒ｺ螳壽ｸ医∩"
+            title="承認済み"
+            subtitle="人的資本価値として確定済みの投稿です。AI分析と上司評価が紐づいた状態で確認できます。"
+            statusLabel="価値確定済み"
             tone="emerald"
             posts={approvedPosts}
-            emptyMessage="謇ｿ隱肴ｸ医∩縺ｮ謚慕ｨｿ縺ｯ縺ｾ縺縺ゅｊ縺ｾ縺帙ｓ縲・
+            emptyMessage="承認済みの投稿はまだありません。"
             selectedPoints={selectedPoints}
             setSelectedPoints={setSelectedPoints}
             comments={comments}
@@ -385,12 +385,12 @@ export default function ManagerPage() {
           />
 
           <PostSection
-            title="蟾ｮ謌ｻ縺・
-            subtitle="謇ｿ隱阪＆繧後↑縺九▲縺滓兜遞ｿ縺ｧ縺吶ょｿ・ｦ√↓蠢懊§縺ｦ蜀肴兜遞ｿ蟇ｾ雎｡縺ｫ縺励∪縺吶・
-            statusLabel="蟾ｮ謌ｻ縺玲ｸ医∩"
+            title="差戻し"
+            subtitle="承認されなかった投稿です。必要に応じて再投稿対象にします。"
+            statusLabel="差戻し済み"
             tone="slate"
             posts={rejectedPosts}
-            emptyMessage="蟾ｮ謌ｻ縺玲兜遞ｿ縺ｯ縺ゅｊ縺ｾ縺帙ｓ縲・
+            emptyMessage="差戻し投稿はありません。"
             selectedPoints={selectedPoints}
             setSelectedPoints={setSelectedPoints}
             comments={comments}
@@ -447,7 +447,7 @@ function PostSection({
         <p
           className={`inline-flex rounded-full border px-4 py-2 text-sm font-black ${toneClass}`}
         >
-          {statusLabel}・嘴posts.length}莉ｶ
+          {statusLabel}：{posts.length}件
         </p>
 
         <h2 className="mt-4 text-3xl font-black">{title}</h2>
@@ -513,16 +513,16 @@ function PostCard({
       <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap gap-2">
-            <Badge color="sky">{post.department || "譛ｪ險ｭ螳・}</Badge>
+            <Badge color="sky">{post.department || "未設定"}</Badge>
             <Badge color="emerald">{category}</Badge>
             {post.human_action && (
               <Badge color="emerald">{post.human_action}</Badge>
             )}
-            {mode === "pending" && <Badge color="amber">謇ｿ隱榊ｾ・■</Badge>}
+            {mode === "pending" && <Badge color="amber">承認待ち</Badge>}
             {mode === "approved" && (
-              <Badge color="emerald">萓｡蛟､遒ｺ螳壽ｸ医∩</Badge>
+              <Badge color="emerald">価値確定済み</Badge>
             )}
-            {mode === "rejected" && <Badge color="slate">蟾ｮ謌ｻ縺玲ｸ医∩</Badge>}
+            {mode === "rejected" && <Badge color="slate">差戻し済み</Badge>}
           </div>
 
           <h3 className="mt-4 text-2xl font-black leading-relaxed text-white">
@@ -530,10 +530,10 @@ function PostCard({
           </h3>
 
           <div className="mt-3 grid gap-1 text-sm font-bold text-slate-400">
-            <p>謚慕ｨｿ閠・ｼ嘴post.employee_name || "繝・せ繝育､ｾ蜩｡"}</p>
-            <p>謚慕ｨｿ譌･・嘴formatDate(post.created_at)}</p>
+            <p>投稿者：{post.employee_name || "テスト社員"}</p>
+            <p>投稿日：{formatDate(post.created_at)}</p>
             {mode !== "pending" && (
-              <p>隧穂ｾ｡譌･・嘴formatDate(post.reviewed_at)}</p>
+              <p>評価日：{formatDate(post.reviewed_at)}</p>
             )}
           </div>
         </div>
@@ -546,7 +546,7 @@ function PostCard({
       {mode === "pending" && (
         <>
           <div className="mt-6 rounded-3xl border border-white/10 bg-white/[0.03] p-5">
-            <p className="text-sm font-black text-slate-300">隧穂ｾ｡繝昴う繝ｳ繝・/p>
+            <p className="text-sm font-black text-slate-300">評価ポイント</p>
 
             <div className="mt-4 grid gap-3 md:grid-cols-3">
               {pointOptions.map((point) => (
@@ -571,8 +571,8 @@ function PostCard({
             </div>
 
             <div className="mt-4 rounded-2xl border border-emerald-400/20 bg-emerald-400/10 p-4 text-sm font-bold text-emerald-200">
-              謇ｿ隱阪☆繧九→ {currentPoints}pt / ﾂ･
-              {estimatedValue.toLocaleString()} 縺ｮ莠ｺ逧・ｳ・悽萓｡蛟､縺ｨ縺励※遒ｺ螳壹＠縺ｾ縺吶・
+              承認すると {currentPoints}pt / ¥
+              {estimatedValue.toLocaleString()} の人的資本価値として確定します。
             </div>
 
             <textarea
@@ -583,7 +583,7 @@ function PostCard({
                   [post.id]: e.target.value,
                 }))
               }
-              placeholder="荳雁昇繧ｳ繝｡繝ｳ繝医ｒ蜈･蜉幢ｼ井ｾ具ｼ哂I蛻・梵繧ｳ繝｡繝ｳ繝医→謗ｨ螳啌OI繧堤｢ｺ隱阪＠縲∝ｦ･蠖薙→蛻､譁ｭ・・
+              placeholder="上司コメントを入力（例：AI分析コメントと推定ROIを確認し、妥当と判断）"
               className="mt-4 min-h-24 w-full rounded-2xl border border-white/10 bg-[#071326] p-4 text-sm font-bold text-white outline-none placeholder:text-slate-500 focus:border-emerald-400/50"
             />
           </div>
@@ -593,14 +593,14 @@ function PostCard({
               onClick={() => approvePost(post.id)}
               className="flex-1 rounded-2xl bg-gradient-to-r from-emerald-400 to-cyan-400 px-5 py-4 font-black text-slate-950 shadow-lg shadow-emerald-500/20 transition hover:-translate-y-0.5"
             >
-              謇ｿ隱阪＠縺ｦ萓｡蛟､遒ｺ螳・
+              承認して価値確定
             </button>
 
             <button
               onClick={() => rejectPost(post.id)}
               className="rounded-2xl border border-white/10 bg-white/[0.03] px-5 py-4 font-black text-slate-300 transition hover:border-red-400/40 hover:text-red-300"
             >
-              蟾ｮ謌ｻ縺・
+              差戻し
             </button>
           </div>
         </>
@@ -608,11 +608,11 @@ function PostCard({
 
       {mode === "approved" && (
         <div className="mt-5 rounded-2xl border border-emerald-400/20 bg-emerald-400/10 p-4 text-sm font-bold text-emerald-200">
-          縺薙・陦悟虚縺ｯ {confirmedPoints}pt / ﾂ･
-          {confirmedValue.toLocaleString()} 縺ｨ縺励※萓｡蛟､遒ｺ螳壽ｸ医∩縺ｧ縺吶・
+          この行動は {confirmedPoints}pt / ¥
+          {confirmedValue.toLocaleString()} として価値確定済みです。
           {post.manager_comment && (
             <p className="mt-2 text-emerald-100">
-              荳雁昇繧ｳ繝｡繝ｳ繝茨ｼ嘴post.manager_comment}
+              上司コメント：{post.manager_comment}
             </p>
           )}
         </div>
@@ -620,10 +620,10 @@ function PostCard({
 
       {mode === "rejected" && (
         <div className="mt-5 rounded-2xl border border-slate-400/20 bg-slate-400/10 p-4 text-sm font-bold text-slate-300">
-          縺薙・陦悟虚縺ｯ蟾ｮ謌ｻ縺玲ｸ医∩縺ｧ縺吶・
+          この行動は差戻し済みです。
           {post.manager_comment && (
             <p className="mt-2 text-slate-200">
-              荳雁昇繧ｳ繝｡繝ｳ繝茨ｼ嘴post.manager_comment}
+              上司コメント：{post.manager_comment}
             </p>
           )}
         </div>
@@ -649,10 +649,10 @@ function AiCommentPanel({
   return (
     <div className="mt-5 rounded-3xl border border-cyan-400/20 bg-cyan-400/10 p-5">
       <div className="flex flex-wrap items-center gap-2">
-        <Badge color="emerald">AI謗ｨ螳・{post.roi_points ?? aiPoint}P</Badge>
+        <Badge color="emerald">AI推定 {post.roi_points ?? aiPoint}P</Badge>
 
         <Badge color="sky">
-          菫｡鬆ｼ蠎ｦ {post.confidence_score ?? bias.trustScore}
+          信頼度 {post.confidence_score ?? bias.trustScore}
           {typeof post.confidence_score === "number" ? "%" : ""}
         </Badge>
 
@@ -666,26 +666,26 @@ function AiCommentPanel({
 
       <div className="mt-4">
         <p className="text-xs font-black tracking-wider text-cyan-300">
-          AI蛻・梵繧ｳ繝｡繝ｳ繝・
+          AI分析コメント
         </p>
 
         <p className="mt-3 text-sm leading-7 text-slate-200">
-          {post.ai_comment || "莠ｺ逧・ｳ・悽陦悟虚縺ｨ縺励※蛻・梵荳ｭ縺ｧ縺吶・}
+          {post.ai_comment || "人的資本行動として分析中です。"}
         </p>
       </div>
 
       <div className="mt-4 grid gap-3 md:grid-cols-3">
-        <AiMetric label="謗ｨ螳啌OI-P" value={`${post.roi_points ?? aiPoint}P`} />
+        <AiMetric label="推定ROI-P" value={`${post.roi_points ?? aiPoint}P`} />
         <AiMetric
-          label="謗ｨ螳夊ｲ｡蜍吝柑譫・
+          label="推定財務効果"
           value={
             typeof post.estimated_value === "number"
-              ? `ﾂ･${post.estimated_value.toLocaleString()}`
+              ? `¥${post.estimated_value.toLocaleString()}`
               : "-"
           }
         />
         <AiMetric
-          label="謗ｨ螳壼炎貂帶凾髢・
+          label="推定削減時間"
           value={
             typeof post.estimated_hours_saved === "number"
               ? `${post.estimated_hours_saved}h`
@@ -720,13 +720,13 @@ function BiasInsightCard({
 }) {
   return (
     <div className="min-w-[230px] rounded-2xl border border-emerald-400/20 bg-emerald-400/10 p-4">
-      <p className="text-xs font-black text-emerald-300">AI隧穂ｾ｡陬懷勧</p>
+      <p className="text-xs font-black text-emerald-300">AI評価補助</p>
 
       <div className="mt-3 grid gap-3">
-        <InsightRow label="謗ｨ螂ｨ轤ｹ謨ｰ" value={`${aiPoint}pt`} />
-        <InsightRow label="菫｡鬆ｼ繧ｹ繧ｳ繧｢" value={bias.trustScore} />
+        <InsightRow label="推奨点数" value={`${aiPoint}pt`} />
+        <InsightRow label="信頼スコア" value={bias.trustScore} />
         <InsightRow
-          label="驛ｨ髢蟷ｳ蝮・→縺ｮ蟾ｮ"
+          label="部門平均との差"
           value={`${bias.diff > 0 ? "+" : ""}${bias.diff}%`}
           alert={bias.hasWarning}
         />
@@ -739,7 +739,7 @@ function BiasInsightCard({
             : "border-emerald-400/20 bg-emerald-400/10 text-emerald-200"
         }`}
       >
-        {bias.hasWarning ? "笞 " : "笨・"}
+        {bias.hasWarning ? "⚠ " : "✓ "}
         {bias.alert}
       </div>
     </div>
@@ -822,4 +822,3 @@ function Badge({
     </span>
   );
 }
-

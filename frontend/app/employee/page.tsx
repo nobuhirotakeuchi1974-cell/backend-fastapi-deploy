@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useEffect, useState } from "react";
 
@@ -8,46 +8,46 @@ const API_BASE_URL =
 const VALUE_PER_POINT = 10000;
 
 const categories = [
-  { value: "challenge", label: "謖第姶" },
-  { value: "improvement", label: "謾ｹ蝟・ },
-  { value: "support", label: "謾ｯ謠ｴ" },
-  { value: "learning", label: "蟄ｦ鄙・ },
+  { value: "challenge", label: "挑戦" },
+  { value: "improvement", label: "改善" },
+  { value: "support", label: "支援" },
+  { value: "learning", label: "学習" },
 ];
 
 const departments = [
-  { value: "蝟ｶ讌ｭ", label: "蝟ｶ讌ｭ" },
-  { value: "譛ｬ遉ｾ", label: "譛ｬ遉ｾ" },
-  { value: "迴ｾ蝣ｴ", label: "迴ｾ蝣ｴ" },
+  { value: "営業", label: "営業" },
+  { value: "本社", label: "本社" },
+  { value: "現場", label: "現場" },
 ];
 
 const aiSuggestions = [
   {
-    label: "謾ｹ蝟・署譯・,
-    text: "蝟ｶ讌ｭ雉・侭繧呈隼蝟・＠縲∵署譯域ｺ門ｙ譎る俣繧・0蛻・洒邵ｮ縺励◆縲・,
+    label: "改善提案",
+    text: "営業資料を改善し、提案準備時間を30分短縮した。",
   },
   {
-    label: "謾ｯ謠ｴ",
-    text: "莉夜Κ鄂ｲ縺ｮ險育判菴懈・繧定｣懷勧縺励∝ｷ･謨ｰ繧・莠ｺ譛亥炎貂帙＠縺溘・,
+    label: "支援",
+    text: "他部署の計画作成を補助し、工数を1人月削減した。",
   },
   {
-    label: "蟄ｦ鄙・,
-    text: "譁ｰ縺励＞蛻・梵繝・・繝ｫ繧貞ｭｦ鄙偵＠縲√Ξ繝昴・繝井ｽ懈・繧貞柑邇・喧縺励◆縲・,
+    label: "学習",
+    text: "新しい分析ツールを学習し、レポート作成を効率化した。",
   },
   {
-    label: "謖第姶",
-    text: "譁ｰ隕城｡ｧ螳｢蜷代￠謠先｡医↓謖第姶縺励∝膚隲・ｩ滉ｼ壹ｒ蜑ｵ蜃ｺ縺励◆縲・,
+    label: "挑戦",
+    text: "新規顧客向け提案に挑戦し、商談機会を創出した。",
   },
 ];
 
 const categoryLabels: Record<string, string> = {
-  challenge: "謖第姶",
-  improvement: "謾ｹ蝟・,
-  support: "謾ｯ謠ｴ",
-  learning: "蟄ｦ鄙・,
-  謖第姶: "謖第姶",
-  謾ｹ蝟・ "謾ｹ蝟・,
-  謾ｯ謠ｴ: "謾ｯ謠ｴ",
-  蟄ｦ鄙・ "蟄ｦ鄙・,
+  challenge: "挑戦",
+  improvement: "改善",
+  support: "支援",
+  learning: "学習",
+  挑戦: "挑戦",
+  改善: "改善",
+  支援: "支援",
+  学習: "学習",
 };
 
 type Post = {
@@ -91,17 +91,17 @@ export default function EmployeePage() {
 
   const handleSubmit = async () => {
     if (!department) {
-      setMessage("驛ｨ髢繧帝∈謚槭＠縺ｦ縺上□縺輔＞");
+      setMessage("部門を選択してください");
       return;
     }
 
     if (!category) {
-      setMessage("繧ｫ繝・ざ繝ｪ繧帝∈謚槭＠縺ｦ縺上□縺輔＞");
+      setMessage("カテゴリを選択してください");
       return;
     }
 
     if (!behavior.trim()) {
-      setMessage("陦悟虚蜀・ｮｹ繧貞・蜉帙＠縺ｦ縺上□縺輔＞");
+      setMessage("行動内容を入力してください");
       return;
     }
 
@@ -111,7 +111,7 @@ export default function EmployeePage() {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        employee_name: "繝・せ繝育､ｾ蜩｡",
+        employee_name: "テスト社員",
         department,
         behavior,
         category,
@@ -120,7 +120,7 @@ export default function EmployeePage() {
     });
 
     if (!res.ok) {
-      setMessage("騾∽ｿ｡縺ｫ螟ｱ謨励＠縺ｾ縺励◆");
+      setMessage("送信に失敗しました");
       return;
     }
 
@@ -128,7 +128,7 @@ export default function EmployeePage() {
     setCategory("");
     setDepartment("");
 
-    setMessage("騾∽ｿ｡縺励∪縺励◆縲ゆｸ雁昇隧穂ｾ｡蠕・■縺ｫ霑ｽ蜉縺輔ｌ縺ｾ縺励◆縲・);
+    setMessage("送信しました。上司評価待ちに追加されました。");
 
     fetchPosts();
 
@@ -153,30 +153,30 @@ export default function EmployeePage() {
 
           <div className="relative z-10">
             <p className="mb-4 inline-flex rounded-full border border-emerald-400/30 bg-emerald-400/10 px-4 py-2 text-sm font-black text-emerald-300">
-              笳・Employee Action
+              ● Employee Action
             </p>
 
             <h1 className="text-4xl font-black">
-              莉頑律縺ｮ陦悟虚繧定ｨ倬鹸縺吶ｋ
+              今日の行動を記録する
             </h1>
 
             <p className="mt-5 max-w-4xl leading-8 text-slate-200">
-              譌･縲・・謖第姶繝ｻ謾ｹ蝟・・謾ｯ謠ｴ繝ｻ蟄ｦ鄙偵ｒ謚慕ｨｿ縺吶ｋ縺ｨ縲・
-              荳雁昇隧穂ｾ｡繧帝壹§縺ｦ莠ｺ逧・ｳ・悽萓｡蛟､縺ｨ縺励※蜿ｯ隕門喧縺輔ｌ縺ｾ縺吶・
+              日々の挑戦・改善・支援・学習を投稿すると、
+              上司評価を通じて人的資本価値として可視化されます。
             </p>
           </div>
         </header>
 
         <section className="mt-6 grid gap-4 md:grid-cols-3">
-          <KpiCard title="謇ｿ隱肴ｸ医∩繝昴う繝ｳ繝・ value={`${totalPoints}pt`} />
+          <KpiCard title="承認済みポイント" value={`${totalPoints}pt`} />
           <KpiCard
-            title="縺ゅ↑縺溘・遒ｺ螳壻ｾ｡蛟､"
-            value={`ﾂ･${totalValue.toLocaleString()}`}
+            title="あなたの確定価値"
+            value={`¥${totalValue.toLocaleString()}`}
             strong
           />
           <KpiCard
-            title="謇ｿ隱榊ｾ・■"
-            value={`${pending.length}莉ｶ`}
+            title="承認待ち"
+            value={`${pending.length}件`}
             accent
           />
         </section>
@@ -184,7 +184,7 @@ export default function EmployeePage() {
         {message && (
           <div
             className={`fixed right-6 top-6 z-50 rounded-2xl px-6 py-4 font-black shadow-2xl ${
-              message.includes("騾∽ｿ｡縺励∪縺励◆")
+              message.includes("送信しました")
                 ? "bg-gradient-to-r from-emerald-400 to-cyan-400 text-slate-950"
                 : "bg-white text-slate-950"
             }`}
@@ -195,15 +195,15 @@ export default function EmployeePage() {
 
         <section className="mt-6 rounded-[28px] border border-white/10 bg-[#0b1528] p-7 shadow-2xl">
           <div className="mb-6">
-            <h2 className="text-3xl font-black">陦悟虚蜈･蜉・/h2>
+            <h2 className="text-3xl font-black">行動入力</h2>
 
             <p className="mt-2 text-sm font-bold leading-7 text-slate-400">
-              驛ｨ髢繝ｻ繧ｫ繝・ざ繝ｪ繧帝∈縺ｳ縲∽ｸ雁昇縺瑚ｩ穂ｾ｡縺励ｄ縺吶＞繧医≧縺ｫ陦悟虚蜀・ｮｹ繧貞・菴鍋噪縺ｫ險倬鹸縺励∪縺吶・
+              部門・カテゴリを選び、上司が評価しやすいように行動内容を具体的に記録します。
             </p>
           </div>
 
           <div className="rounded-[26px] border border-white/10 bg-[#081225] p-6">
-            <FieldTitle title="驛ｨ髢" required />
+            <FieldTitle title="部門" required />
 
             <div className="mb-6 grid gap-3 md:grid-cols-3">
               {departments.map((item) => (
@@ -218,7 +218,7 @@ export default function EmployeePage() {
               ))}
             </div>
 
-            <FieldTitle title="繧ｫ繝・ざ繝ｪ" required />
+            <FieldTitle title="カテゴリ" required />
 
             <div className="mb-6 grid gap-3 md:grid-cols-4">
               {categories.map((item) => (
@@ -233,7 +233,7 @@ export default function EmployeePage() {
               ))}
             </div>
 
-            <FieldTitle title="AI謚慕ｨｿ繧｢繧ｷ繧ｹ繝・ />
+            <FieldTitle title="AI投稿アシスト" />
 
             <div className="mb-5 flex flex-wrap gap-3">
               {aiSuggestions.map((item) => (
@@ -243,42 +243,42 @@ export default function EmployeePage() {
                   onClick={() => setBehavior(item.text)}
                   className="rounded-full border border-emerald-400/20 bg-emerald-400/10 px-4 py-2 text-xs font-black text-emerald-300 transition hover:bg-emerald-400 hover:text-slate-950"
                 >
-                  AI謠先｡茨ｼ嘴item.label}
+                  AI提案：{item.label}
                 </button>
               ))}
             </div>
 
-            <FieldTitle title="陦悟虚蜀・ｮｹ" required />
+            <FieldTitle title="行動内容" required />
 
             <textarea
               value={behavior}
               onChange={(e) => setBehavior(e.target.value)}
-              placeholder="萓具ｼ壼霧讌ｭ雉・侭縺ｮ豈碑ｼ・｡ｨ繧剃ｽ懊ｊ逶ｴ縺励∵署譯域ｺ門ｙ譎る俣繧・0蛻・洒邵ｮ縺励◆"
+              placeholder="例：営業資料の比較表を作り直し、提案準備時間を30分短縮した"
               rows={6}
               className="w-full rounded-[22px] border border-white/10 bg-[#071326] p-5 text-sm font-bold leading-8 text-white outline-none placeholder:text-slate-500 focus:border-emerald-400/40"
             />
 
             <div className="mt-5 rounded-2xl border border-emerald-400/20 bg-emerald-400/10 p-5 text-sm font-bold leading-8 text-emerald-100">
-              譖ｸ縺肴婿縺ｮ逶ｮ螳会ｼ・
-              菴輔ｒ縺励◆縺具ｼ剰ｪｰ縺ｫ蜉ｹ縺・◆縺具ｼ乗凾髢鍋洒邵ｮ繝ｻ蜩∬ｳｪ蜷台ｸ翫・螢ｲ荳願ｲ｢迪ｮ縺ｪ縺ｩ縺ｮ蜉ｹ譫懊ｒ蜈･繧後ｋ縺ｨ縲・
-              荳雁昇縺瑚ｩ穂ｾ｡縺励ｄ縺吶￥縺ｪ繧翫∪縺吶・
+              書き方の目安：
+              何をしたか／誰に効いたか／時間短縮・品質向上・売上貢献などの効果を入れると、
+              上司が評価しやすくなります。
             </div>
 
             <button
               onClick={handleSubmit}
               className="mt-6 w-full rounded-[22px] bg-gradient-to-r from-emerald-400 to-cyan-400 px-6 py-5 text-lg font-black text-slate-950 shadow-2xl shadow-emerald-500/20 transition hover:-translate-y-1"
             >
-              荳雁昇隧穂ｾ｡縺ｸ騾∽ｿ｡縺吶ｋ
+              上司評価へ送信する
             </button>
           </div>
         </section>
 
         <section className="mt-6 rounded-[28px] border border-white/10 bg-[#0b1528] p-7 shadow-2xl">
           <div className="mb-6">
-            <h2 className="text-3xl font-black">縺ゅ↑縺溘・謚慕ｨｿ螻･豁ｴ</h2>
+            <h2 className="text-3xl font-black">あなたの投稿履歴</h2>
 
             <p className="mt-2 text-sm font-bold leading-7 text-slate-400">
-              謚慕ｨｿ縺励◆陦悟虚縺ｮ謇ｿ隱咲憾豕√→縲∫｢ｺ螳壹＠縺滉ｺｺ逧・ｳ・悽萓｡蛟､繧堤｢ｺ隱阪〒縺阪∪縺吶・
+              投稿した行動の承認状況と、確定した人的資本価値を確認できます。
             </p>
           </div>
 
@@ -301,7 +301,7 @@ export default function EmployeePage() {
                       <div className="flex-1">
                         <div className="flex flex-wrap gap-2">
                           <Badge color="sky">
-                            {post.department || "譛ｪ險ｭ螳・}
+                            {post.department || "未設定"}
                           </Badge>
 
                           <Badge color="emerald">
@@ -316,10 +316,10 @@ export default function EmployeePage() {
                         </p>
 
                         <div className="mt-4 grid gap-1 text-xs font-bold text-slate-500">
-                          <p>謚慕ｨｿ譌･譎ゑｼ嘴formatDate(post.created_at)}</p>
+                          <p>投稿日時：{formatDate(post.created_at)}</p>
 
                           {post.reviewed_at && (
-                            <p>謇ｿ隱肴律譎ゑｼ嘴formatDate(post.reviewed_at)}</p>
+                            <p>承認日時：{formatDate(post.reviewed_at)}</p>
                           )}
                         </div>
                       </div>
@@ -327,7 +327,7 @@ export default function EmployeePage() {
                       {post.status === "approved" && (
                         <div className="min-w-[150px] rounded-2xl border border-emerald-400/20 bg-emerald-400/10 p-5 text-center">
                           <p className="text-xs font-black text-emerald-300">
-                            遒ｺ螳壻ｾ｡蛟､
+                            確定価値
                           </p>
 
                           <p className="mt-2 text-3xl font-black text-white">
@@ -335,7 +335,7 @@ export default function EmployeePage() {
                           </p>
 
                           <p className="mt-1 text-sm font-black text-emerald-300">
-                            ﾂ･{value.toLocaleString()}
+                            ¥{value.toLocaleString()}
                           </p>
                         </div>
                       )}
@@ -344,7 +344,7 @@ export default function EmployeePage() {
                     {post.manager_comment && (
                       <div className="mt-5 rounded-2xl border border-white/10 bg-white/[0.03] p-4">
                         <p className="text-xs font-black text-slate-400">
-                          荳雁昇繧ｳ繝｡繝ｳ繝・
+                          上司コメント
                         </p>
 
                         <div className="mt-2 text-sm font-bold leading-7 text-slate-200">
@@ -411,7 +411,7 @@ function FieldTitle({
 
       {required && (
         <span className="ml-2 text-rose-400">
-          蠢・・
+          必須
         </span>
       )}
     </p>
@@ -476,13 +476,12 @@ function Badge({
 
 function StatusBadge({ status }: { status: string }) {
   if (status === "approved") {
-    return <Badge color="emerald">謇ｿ隱肴ｸ・/Badge>;
+    return <Badge color="emerald">承認済</Badge>;
   }
 
   if (status === "rejected") {
-    return <Badge color="rose">蟾ｮ謌ｻ縺・/Badge>;
+    return <Badge color="rose">差戻し</Badge>;
   }
 
-  return <Badge color="amber">謇ｿ隱榊ｾ・■</Badge>;
+  return <Badge color="amber">承認待ち</Badge>;
 }
-
