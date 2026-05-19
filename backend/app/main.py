@@ -45,17 +45,16 @@ logging.getLogger("uvicorn.error").addFilter(RequestIdFilter())
 app = FastAPI(title="Human Capital OS")
 
 
-ALLOWED_ORIGINS = [
+allow_origins=[
     "http://localhost:3000",
     "http://127.0.0.1:3000",
-    "http://192.168.3.31:3000",
-    "https://tech0-gen-11-step3-2-py-62.azurewebsites.net",
-]
+    "https://tech0-gen-11-step3-2-node-62.azurewebsites.net",
+],
 
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=ALLOWED_ORIGINS,
+    allow_origins=allow_origins,
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allow_headers=["Authorization", "Content-Type", "X-Request-ID"],
