@@ -1,4 +1,4 @@
-name: Deploy FastAPI to Azure
+name: Deploy Next.js Frontend to Azure
 
 on:
   push:
@@ -10,16 +10,27 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
 
-      - name: Zip backend app
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install dependencies
         run: |
-          cd backend
-          zip -r ../app.zip .
+          cd frontend
+          npm install
+
+      - name: Build Next.js
+        run: |
+          cd frontend
+          npm run build
 
       - name: Deploy to Azure Web App
         uses: azure/webapps-deploy@v3
         with:
-          app-name: 'tech0-gen-11-step3-2-py-62'
-          publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_8B1F8FA89EDA46A88FB4A099ADF6B565 }}
-          package: app.zip
+          app-name: tech0-gen-11-step3-2-node-62
+          publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE }}
+          package: ./frontend
