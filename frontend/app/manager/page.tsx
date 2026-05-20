@@ -4,11 +4,12 @@ import AuthGuard from "../components/AuthGuard";
 import LogoutButton from "../components/LogoutButton";
 
 import { useEffect, useMemo, useState } from "react";
-import type { Dispatch, SetStateAction, ReactNode } from "react";
+import type { Dispatch, ReactNode, SetStateAction } from "react";
 import { CheckCircle2 } from "lucide-react";
 
 const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_BASE_URL || "https://tech0-gen-11-step3-2-py-62.azurewebsites.net";
+  process.env.NEXT_PUBLIC_API_BASE_URL ||
+  "https://tech0-gen-11-step3-2-py-62.azurewebsites.net";
 
 const VALUE_PER_POINT = 10000;
 
@@ -41,8 +42,7 @@ function normalizeCategory(category?: string) {
   const raw = category ?? "未分類";
   const normalized = String(raw).toLowerCase();
 
-  if (normalized.includes("challenge") || normalized.includes("挑戦"))
-    return "挑戦";
+  if (normalized.includes("challenge") || normalized.includes("挑戦")) return "挑戦";
   if (
     normalized.includes("improvement") ||
     normalized.includes("改善") ||
@@ -58,8 +58,7 @@ function normalizeCategory(category?: string) {
   ) {
     return "助け合い";
   }
-  if (normalized.includes("learning") || normalized.includes("学習"))
-    return "学習";
+  if (normalized.includes("learning") || normalized.includes("学習")) return "学習";
 
   return raw;
 }
@@ -129,18 +128,7 @@ export default function ManagerPage() {
   if (ROLE === "employee") {
     return (
       <AuthGuard>
-        <main
-          style={{
-            minHeight: "100vh",
-            background: "#071326",
-            color: "white",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            fontSize: "24px",
-            fontWeight: 900,
-          }}
-        >
+        <main className="flex min-h-screen items-center justify-center bg-[#071326] px-4 text-center text-2xl font-black text-white">
           アクセス権限がありません
         </main>
       </AuthGuard>
@@ -150,9 +138,7 @@ export default function ManagerPage() {
   const [posts, setPosts] = useState<Post[]>([]);
   const [message, setMessage] = useState("");
   const [showAnimation, setShowAnimation] = useState(false);
-  const [selectedPoints, setSelectedPoints] = useState<Record<string, number>>(
-    {}
-  );
+  const [selectedPoints, setSelectedPoints] = useState<Record<string, number>>({});
   const [comments, setComments] = useState<Record<string, string>>({});
 
   const getAuthHeaders = () => {
@@ -289,34 +275,41 @@ export default function ManagerPage() {
 
   return (
     <AuthGuard>
-      <main className="min-h-screen bg-[#071326] px-6 py-10 text-white">
-        <section className="mx-auto max-w-6xl">
-          <header className="relative overflow-hidden rounded-[28px] border border-emerald-400/20 bg-gradient-to-r from-[#0b1b33] to-[#06402f] p-8 shadow-2xl shadow-emerald-500/10">
+      <main className="min-h-screen w-full max-w-full overflow-x-hidden bg-[#071326] px-4 py-8 text-white sm:px-6 sm:py-10">
+        <section className="mx-auto w-full max-w-6xl overflow-x-hidden">
+          <header className="relative w-full max-w-full overflow-hidden rounded-[24px] border border-emerald-400/20 bg-gradient-to-r from-[#0b1b33] to-[#06402f] p-5 shadow-2xl shadow-emerald-500/10 sm:rounded-[28px] sm:p-8">
             <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(16,185,129,0.18),transparent_45%)]" />
 
-            <div className="relative z-10 flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
-              <div>
-                <p className="mb-4 inline-flex rounded-full border border-emerald-400/30 bg-emerald-400/10 px-4 py-2 text-sm font-black text-emerald-300">
+            <div className="relative z-10 flex w-full min-w-0 flex-col gap-6">
+              <div className="min-w-0">
+                <p className="mb-4 inline-flex max-w-full rounded-full border border-emerald-400/30 bg-emerald-400/10 px-4 py-2 text-xs font-black text-emerald-300 sm:text-sm">
                   ● Manager Review
                 </p>
 
-                <h1 className="text-4xl font-black">
-                  上司評価・価値確定ダッシュボード
+                <h1 className="text-[30px] font-black leading-tight tracking-tight text-white sm:text-4xl">
+                  <span className="block">上司評価・</span>
+                  <span className="block">価値確定</span>
+                  <span className="block">ダッシュボード</span>
                 </h1>
 
-                <p className="mt-5 max-w-4xl leading-8 text-slate-200">
+                <p className="mt-5 text-sm leading-7 text-slate-200 sm:max-w-4xl sm:text-base sm:leading-8">
                   AI分析コメント、推定ROI-P、信頼スコア、部門間評価乖離を確認しながら、
                   社員行動を人的資本価値として確定します。
                 </p>
               </div>
 
-              <div className="flex shrink-0">
+              <div>
                 <LogoutButton />
               </div>
             </div>
           </header>
 
-          <section className="mt-6 grid gap-4 md:grid-cols-4">
+          <section
+            className="mt-6 grid w-full max-w-full gap-4 overflow-hidden"
+            style={{
+              gridTemplateColumns: "repeat(auto-fit, minmax(190px, 1fr))",
+            }}
+          >
             <KpiCard title="承認待ち" value={`${pendingPosts.length}件`} />
             <KpiCard title="確定済みポイント" value={`${totalPoints}pt`} />
             <KpiCard
@@ -332,11 +325,13 @@ export default function ManagerPage() {
           </section>
 
           {showAnimation && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur">
-              <div className="rounded-[28px] border border-emerald-400/30 bg-[#ecfdf5] px-14 py-10 text-center text-slate-950 shadow-2xl">
-                <CheckCircle2 className="mx-auto h-20 w-20 text-emerald-500" />
-                <h2 className="mt-5 text-3xl font-black">承認完了</h2>
-                <p className="mt-3 text-2xl font-black text-emerald-700">
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4 backdrop-blur">
+              <div className="w-full max-w-md rounded-[28px] border border-emerald-400/30 bg-[#ecfdf5] px-6 py-9 text-center text-slate-950 shadow-2xl sm:px-14 sm:py-10">
+                <CheckCircle2 className="mx-auto h-16 w-16 text-emerald-500 sm:h-20 sm:w-20" />
+                <h2 className="mt-5 text-2xl font-black sm:text-3xl">
+                  承認完了
+                </h2>
+                <p className="mt-3 text-xl font-black text-emerald-700 sm:text-2xl">
                   {message}
                 </p>
                 <p className="mt-3 text-sm font-bold text-slate-500">
@@ -347,7 +342,7 @@ export default function ManagerPage() {
           )}
 
           {message && !showAnimation && (
-            <div className="fixed right-6 top-6 z-50 rounded-2xl bg-white px-6 py-4 font-black text-slate-950 shadow-2xl">
+            <div className="fixed left-4 right-4 top-4 z-50 rounded-2xl bg-white px-5 py-4 text-center font-black text-slate-950 shadow-2xl sm:left-auto sm:right-6 sm:top-6">
               {message}
             </div>
           )}
@@ -442,15 +437,15 @@ function PostSection({
         : "border-slate-400/20 bg-slate-400/10 text-slate-300";
 
   return (
-    <section className="mt-6 rounded-[28px] border border-white/10 bg-[#0b1528] p-7 shadow-2xl">
-      <div className="mb-6">
+    <section className="mt-6 w-full max-w-full overflow-hidden rounded-[24px] border border-white/10 bg-[#0b1528] p-4 shadow-2xl sm:rounded-[28px] sm:p-7">
+      <div className="mb-6 min-w-0">
         <p
-          className={`inline-flex rounded-full border px-4 py-2 text-sm font-black ${toneClass}`}
+          className={`inline-flex max-w-full rounded-full border px-4 py-2 text-xs font-black sm:text-sm ${toneClass}`}
         >
           {statusLabel}：{posts.length}件
         </p>
 
-        <h2 className="mt-4 text-3xl font-black">{title}</h2>
+        <h2 className="mt-4 text-2xl font-black sm:text-3xl">{title}</h2>
         <p className="mt-2 text-sm font-bold leading-7 text-slate-400">
           {subtitle}
         </p>
@@ -461,7 +456,7 @@ function PostSection({
           {emptyMessage}
         </div>
       ) : (
-        <div className="grid gap-5">
+        <div className="grid w-full max-w-full gap-5 overflow-hidden">
           {posts.map((post) => (
             <PostCard
               key={post.id}
@@ -509,8 +504,8 @@ function PostCard({
   const bias = getBiasInsight(post);
 
   return (
-    <article className="rounded-[26px] border border-white/10 bg-[#081225] p-6 shadow-xl transition hover:border-emerald-400/30">
-      <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
+    <article className="w-full max-w-full overflow-hidden rounded-[24px] border border-white/10 bg-[#081225] p-4 shadow-xl transition hover:border-emerald-400/30 sm:rounded-[26px] sm:p-6">
+      <div className="flex w-full max-w-full flex-col gap-5 xl:flex-row xl:items-start xl:justify-between">
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap gap-2">
             <Badge color="sky">{post.department || "未設定"}</Badge>
@@ -525,16 +520,14 @@ function PostCard({
             {mode === "rejected" && <Badge color="slate">差戻し済み</Badge>}
           </div>
 
-          <h3 className="mt-4 text-2xl font-black leading-relaxed text-white">
+          <h3 className="mt-4 break-words text-xl font-black leading-relaxed text-white sm:text-2xl">
             {post.behavior}
           </h3>
 
           <div className="mt-3 grid gap-1 text-sm font-bold text-slate-400">
             <p>投稿者：{post.employee_name || "テスト社員"}</p>
             <p>投稿日：{formatDate(post.created_at)}</p>
-            {mode !== "pending" && (
-              <p>評価日：{formatDate(post.reviewed_at)}</p>
-            )}
+            {mode !== "pending" && <p>評価日：{formatDate(post.reviewed_at)}</p>}
           </div>
         </div>
 
@@ -545,10 +538,15 @@ function PostCard({
 
       {mode === "pending" && (
         <>
-          <div className="mt-6 rounded-3xl border border-white/10 bg-white/[0.03] p-5">
+          <div className="mt-6 rounded-3xl border border-white/10 bg-white/[0.03] p-4 sm:p-5">
             <p className="text-sm font-black text-slate-300">評価ポイント</p>
 
-            <div className="mt-4 grid gap-3 md:grid-cols-3">
+            <div
+              className="mt-4 grid gap-3"
+              style={{
+                gridTemplateColumns: "repeat(auto-fit, minmax(110px, 1fr))",
+              }}
+            >
               {pointOptions.map((point) => (
                 <button
                   key={point}
@@ -570,7 +568,7 @@ function PostCard({
               ))}
             </div>
 
-            <div className="mt-4 rounded-2xl border border-emerald-400/20 bg-emerald-400/10 p-4 text-sm font-bold text-emerald-200">
+            <div className="mt-4 rounded-2xl border border-emerald-400/20 bg-emerald-400/10 p-4 text-sm font-bold leading-6 text-emerald-200">
               承認すると {currentPoints}pt / ¥
               {estimatedValue.toLocaleString()} の人的資本価値として確定します。
             </div>
@@ -584,11 +582,11 @@ function PostCard({
                 }))
               }
               placeholder="上司コメントを入力（例：AI分析コメントと推定ROIを確認し、妥当と判断）"
-              className="mt-4 min-h-24 w-full rounded-2xl border border-white/10 bg-[#071326] p-4 text-sm font-bold text-white outline-none placeholder:text-slate-500 focus:border-emerald-400/50"
+              className="mt-4 min-h-24 w-full resize-y rounded-2xl border border-white/10 bg-[#071326] p-4 text-sm font-bold text-white outline-none placeholder:text-slate-500 focus:border-emerald-400/50"
             />
           </div>
 
-          <div className="mt-5 flex gap-3">
+          <div className="mt-5 flex flex-col gap-3 sm:flex-row">
             <button
               onClick={() => approvePost(post.id)}
               className="flex-1 rounded-2xl bg-gradient-to-r from-emerald-400 to-cyan-400 px-5 py-4 font-black text-slate-950 shadow-lg shadow-emerald-500/20 transition hover:-translate-y-0.5"
@@ -607,7 +605,7 @@ function PostCard({
       )}
 
       {mode === "approved" && (
-        <div className="mt-5 rounded-2xl border border-emerald-400/20 bg-emerald-400/10 p-4 text-sm font-bold text-emerald-200">
+        <div className="mt-5 rounded-2xl border border-emerald-400/20 bg-emerald-400/10 p-4 text-sm font-bold leading-6 text-emerald-200">
           この行動は {confirmedPoints}pt / ¥
           {confirmedValue.toLocaleString()} として価値確定済みです。
           {post.manager_comment && (
@@ -619,7 +617,7 @@ function PostCard({
       )}
 
       {mode === "rejected" && (
-        <div className="mt-5 rounded-2xl border border-slate-400/20 bg-slate-400/10 p-4 text-sm font-bold text-slate-300">
+        <div className="mt-5 rounded-2xl border border-slate-400/20 bg-slate-400/10 p-4 text-sm font-bold leading-6 text-slate-300">
           この行動は差戻し済みです。
           {post.manager_comment && (
             <p className="mt-2 text-slate-200">
@@ -647,7 +645,7 @@ function AiCommentPanel({
   };
 }) {
   return (
-    <div className="mt-5 rounded-3xl border border-cyan-400/20 bg-cyan-400/10 p-5">
+    <div className="mt-5 w-full max-w-full overflow-hidden rounded-3xl border border-cyan-400/20 bg-cyan-400/10 p-4 sm:p-5">
       <div className="flex flex-wrap items-center gap-2">
         <Badge color="emerald">AI推定 {post.roi_points ?? aiPoint}P</Badge>
 
@@ -669,12 +667,17 @@ function AiCommentPanel({
           AI分析コメント
         </p>
 
-        <p className="mt-3 text-sm leading-7 text-slate-200">
+        <p className="mt-3 break-words text-sm leading-7 text-slate-200">
           {post.ai_comment || "人的資本行動として分析中です。"}
         </p>
       </div>
 
-      <div className="mt-4 grid gap-3 md:grid-cols-3">
+      <div
+        className="mt-4 grid gap-3"
+        style={{
+          gridTemplateColumns: "repeat(auto-fit, minmax(145px, 1fr))",
+        }}
+      >
         <AiMetric label="推定ROI-P" value={`${post.roi_points ?? aiPoint}P`} />
         <AiMetric
           label="推定財務効果"
@@ -699,9 +702,11 @@ function AiCommentPanel({
 
 function AiMetric({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-2xl border border-white/10 bg-[#071326]/70 p-4">
+    <div className="min-w-0 rounded-2xl border border-white/10 bg-[#071326]/70 p-4">
       <p className="text-xs font-bold text-slate-400">{label}</p>
-      <p className="mt-2 text-lg font-black text-cyan-200">{value}</p>
+      <p className="mt-2 break-words text-lg font-black text-cyan-200">
+        {value}
+      </p>
     </div>
   );
 }
@@ -719,7 +724,7 @@ function BiasInsightCard({
   };
 }) {
   return (
-    <div className="min-w-[230px] rounded-2xl border border-emerald-400/20 bg-emerald-400/10 p-4">
+    <div className="w-full max-w-full rounded-2xl border border-emerald-400/20 bg-emerald-400/10 p-4 xl:w-[250px] xl:shrink-0">
       <p className="text-xs font-black text-emerald-300">AI評価補助</p>
 
       <div className="mt-3 grid gap-3">
@@ -781,13 +786,13 @@ function KpiCard({
   accent?: boolean;
 }) {
   return (
-    <div className="relative overflow-hidden rounded-[24px] border border-white/10 bg-gradient-to-br from-[#0b1220] via-[#101827] to-[#062c28] p-6 shadow-xl">
+    <div className="relative min-w-0 overflow-hidden rounded-[24px] border border-white/10 bg-gradient-to-br from-[#0b1220] via-[#101827] to-[#062c28] p-5 shadow-xl sm:p-6">
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(16,185,129,0.16),transparent_42%)]" />
 
-      <div className="relative z-10">
+      <div className="relative z-10 min-w-0">
         <p className="text-sm font-black text-slate-400">{title}</p>
         <p
-          className={`mt-5 text-3xl font-black ${
+          className={`mt-5 break-words text-2xl font-black sm:text-3xl ${
             strong ? "text-emerald-300" : accent ? "text-amber-300" : "text-white"
           }`}
         >
@@ -816,7 +821,7 @@ function Badge({
 
   return (
     <span
-      className={`inline-flex rounded-full border px-3 py-1 text-xs font-black ${colorClass}`}
+      className={`inline-flex max-w-full break-words rounded-full border px-3 py-1 text-xs font-black ${colorClass}`}
     >
       {children}
     </span>

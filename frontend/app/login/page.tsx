@@ -3,87 +3,94 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 
+const API_BASE_URL =
+  process.env.NEXT_PUBLIC_API_BASE_URL ||
+  "https://tech0-gen-11-step3-2-py-62.azurewebsites.net";
+
 export default function LoginPage() {
   const router = useRouter();
 
   const [username, setUsername] = useState("admin");
   const [password, setPassword] = useState("password123");
   const [error, setError] = useState("");
+  const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
-
-  const apiBaseUrl =
-    process.env.NEXT_PUBLIC_API_BASE_URL ||
-    "https://tech0-gen-11-step3-2-py-62.azurewebsites.net";
 
   const handleLogin = async () => {
     setError("");
+    setMessage("");
     setLoading(true);
 
     try {
-      const res = await fetch(`${apiBaseUrl}/api/auth/login`, {
+      const res = await fetch(`${API_BASE_URL}/api/auth/login`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          username,
+          username: username.trim(),
           password,
         }),
       });
 
       if (!res.ok) {
-        throw new Error("ログインに失敗しました");
+        setError(`ログインに失敗しました: ${res.status}`);
+        return;
       }
 
       const data = await res.json();
 
       if (!data.access_token) {
-        throw new Error("トークンを取得できませんでした");
+        setError("トークンを取得できませんでした");
+        return;
       }
 
       localStorage.setItem("token", data.access_token);
+      setMessage("ログイン成功。ダッシュボードへ移動します。");
 
-      router.push("/dashboard");
-    } catch (e) {
-      console.error(e);
-      setError("ユーザー名またはパスワードが違います");
+      setTimeout(() => {
+        router.push("/dashboard");
+      }, 300);
+    } catch (err) {
+      console.error(err);
+      setError("APIに接続できません。Backend URL または CORS を確認してください。");
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <main className="min-h-screen bg-slate-950 text-white flex items-center justify-center px-6">
-      <section className="w-full max-w-md rounded-3xl border border-emerald-400/20 bg-slate-900/80 p-8 shadow-2xl">
+    <main className="flex min-h-screen items-center justify-center bg-[#071326] px-5 py-10 text-white">
+      <section className="w-full max-w-md rounded-[28px] border border-emerald-400/20 bg-[#0b1528] p-7 shadow-2xl shadow-emerald-500/10">
         <div className="mb-8">
-          <p className="text-sm text-emerald-300 mb-2">
-            Human Capital OS
+          <p className="mb-3 inline-flex rounded-full border border-emerald-400/30 bg-emerald-400/10 px-4 py-2 text-xs font-black tracking-wider text-emerald-300">
+            HUMAN CAPITAL OS
           </p>
 
-          <h1 className="text-3xl font-bold">
-            ログイン
-          </h1>
+          <h1 className="text-3xl font-black text-white">ログイン</h1>
 
-          <p className="mt-3 text-sm text-slate-400">
+          <p className="mt-3 text-sm font-bold leading-7 text-slate-400">
             管理者・上司ユーザーとしてログインします。
           </p>
         </div>
 
         <div className="space-y-5">
           <div>
-            <label className="block text-sm mb-2 text-slate-300">
+            <label className="mb-2 block text-sm font-bold text-slate-300">
               ユーザー名
             </label>
 
             <input
+              type="text"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
-              className="w-full rounded-xl bg-slate-950 border border-slate-700 px-4 py-3 text-white outline-none focus:border-emerald-400"
+              autoComplete="username"
+              className="w-full rounded-2xl border border-white/10 bg-[#071326] px-4 py-3 font-bold text-white outline-none focus:border-emerald-400/60"
             />
           </div>
 
           <div>
-            <label className="block text-sm mb-2 text-slate-300">
+            <label className="mb-2 block text-sm font-bold text-slate-300">
               パスワード
             </label>
 
@@ -91,23 +98,35 @@ export default function LoginPage() {
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full rounded-xl bg-slate-950 border border-slate-700 px-4 py-3 text-white outline-none focus:border-emerald-400"
+              autoComplete="current-password"
+              className="w-full rounded-2xl border border-white/10 bg-[#071326] px-4 py-3 font-bold text-white outline-none focus:border-emerald-400/60"
             />
           </div>
 
           {error && (
-            <div className="rounded-xl border border-red-400/40 bg-red-950/40 px-4 py-3 text-sm text-red-200">
+            <div className="rounded-2xl border border-red-400/40 bg-red-950/40 px-4 py-3 text-sm font-bold text-red-200">
               {error}
             </div>
           )}
 
+          {message && (
+            <div className="rounded-2xl border border-emerald-400/30 bg-emerald-400/10 px-4 py-3 text-sm font-bold text-emerald-200">
+              {message}
+            </div>
+          )}
+
           <button
+            type="button"
             onClick={handleLogin}
             disabled={loading}
-            className="w-full rounded-xl bg-emerald-400 py-3 font-bold text-slate-950 shadow-lg shadow-emerald-500/20 hover:bg-emerald-300 disabled:opacity-60"
+            className="w-full rounded-2xl bg-gradient-to-r from-emerald-400 to-cyan-400 px-5 py-4 font-black text-slate-950 shadow-lg shadow-emerald-500/20 transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60"
           >
             {loading ? "ログイン中..." : "ログインする"}
           </button>
+
+          <p className="text-center text-xs font-bold text-slate-500">
+            demo: admin / password123
+          </p>
         </div>
       </section>
     </main>

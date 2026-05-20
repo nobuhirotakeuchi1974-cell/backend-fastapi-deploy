@@ -9,6 +9,7 @@ import {
   type CSSProperties,
   type ReactNode,
 } from "react";
+
 import {
   ResponsiveContainer,
   LineChart,
@@ -91,7 +92,8 @@ type RoiTrendItem = {
 };
 
 const API_BASE =
-  process.env.NEXT_PUBLIC_API_BASE_URL || "https://tech0-gen-11-step3-2-py-62.azurewebsites.net";
+  process.env.NEXT_PUBLIC_API_BASE_URL ||
+  "https://tech0-gen-11-step3-2-py-62.azurewebsites.net";
 
 const ALL_DEPARTMENTS = "全部門";
 
@@ -100,7 +102,9 @@ function normalizeDepartmentName(name?: string | null) {
 
   if (value === "営業部" || value === "営業") return "営業部";
   if (value === "本社" || value === "本社部門") return "本社";
-  if (value === "業務運用部門" || value === "業務運用") return "業務運用部門";
+  if (value === "業務運用部門" || value === "業務運用") {
+    return "業務運用部門";
+  }
 
   return value;
 }
@@ -155,6 +159,7 @@ export default function DashboardPage() {
           setErrorMessage(
             `Dashboard API取得失敗: summary=${summaryRes.status}, posts=${postsRes.status}, attention=${attentionRes.status}, trend=${roiTrendRes.status}`
           );
+
           setSummary(null);
           setPosts([]);
           setAttentionDepartments([]);
@@ -170,8 +175,8 @@ export default function DashboardPage() {
         const rawPosts = Array.isArray(postsData)
           ? postsData
           : Array.isArray(postsData.data)
-            ? postsData.data
-            : [];
+          ? postsData.data
+          : [];
 
         const rawAttention = Array.isArray(attentionData.data)
           ? attentionData.data
@@ -184,7 +189,8 @@ export default function DashboardPage() {
           })
         );
 
-        const mergedAttention = mergeAttentionDepartments(normalizedAttention);
+        const mergedAttention =
+          mergeAttentionDepartments(normalizedAttention);
 
         setSummary(summaryData);
         setPosts(rawPosts);
@@ -199,6 +205,7 @@ export default function DashboardPage() {
         }
       } catch (error) {
         console.error("dashboard fetch error", error);
+
         setErrorMessage(
           "Dashboard API取得に失敗しました。backend起動・JWT・CORSを確認してください。"
         );
@@ -212,7 +219,9 @@ export default function DashboardPage() {
 
   const targetRoiPoints = summary?.target_roi_points ?? 6000;
   const currentRoiPoints = summary?.total_roi_points ?? 0;
+
   const achievementRateRaw = summary?.achievement_rate ?? 0;
+
   const achievementRate =
     achievementRateRaw < 1
       ? achievementRateRaw.toFixed(2)
@@ -237,7 +246,8 @@ export default function DashboardPage() {
 
     return posts
       .filter(
-        (post) => normalizeDepartmentName(post.department) === selectedDepartment
+        (post) =>
+          normalizeDepartmentName(post.department) === selectedDepartment
       )
       .slice(0, 4);
   }, [posts, selectedDepartment]);
@@ -282,35 +292,31 @@ export default function DashboardPage() {
     <AuthGuard>
       <main style={styles.page}>
         <section style={styles.container}>
-          {errorMessage && <div style={styles.errorBox}>{errorMessage}</div>}
+          {errorMessage && (
+            <div style={styles.errorBox}>{errorMessage}</div>
+          )}
 
-          <div
-            style={{
-              ...styles.hero,
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "flex-start",
-              gap: "24px",
-            }}
-          >
-            <div>
+          <div style={styles.hero}>
+            <div style={styles.heroText}>
               <p style={styles.kicker}>HUMAN CAPITAL OS</p>
+
               <h1 style={styles.title}>
                 現場⇔経営をつなぎ、
                 <br />
                 現場を動かす人的資本OS
               </h1>
+
               <p style={styles.description}>
-                現場の挑戦行動を、AI補完・上司評価・ROI換算で経営判断へ接続します。
+                現場の挑戦行動を、AI補完・上司評価・ROI換算で
+                経営判断へ接続します。
               </p>
             </div>
 
-            <div style={{ flexShrink: 0 }}>
+            <div style={styles.logoutArea}>
               <LogoutButton />
             </div>
           </div>
-
-          <div style={styles.summaryGrid}>
+                    <div style={styles.summaryGrid}>
             {summaryCards.map((card) => (
               <Card key={card.title}>
                 <p style={styles.cardLabel}>{card.title}</p>
@@ -323,24 +329,40 @@ export default function DashboardPage() {
           <div style={styles.twoColumn}>
             <Panel title="KGI進捗" tag="KGI">
               <div style={styles.kgiTop}>
-                <div>
+                <div style={styles.flexItemMin}>
                   <p style={styles.bigValue}>{achievementRate}%</p>
+
                   <p style={styles.muted}>
-                    {currentRoiPoints.toLocaleString()}P /{" "}
+                    {currentRoiPoints.toLocaleString()}P /
+                    {" "}
                     {targetRoiPoints.toLocaleString()}P
                   </p>
                 </div>
+
                 <div style={styles.badge}>
-                  目標 {formatMoney(summary?.target_value ?? 600000000)}
+                  目標
+                  {" "}
+                  {formatMoney(summary?.target_value ?? 600000000)}
                 </div>
               </div>
 
               <Progress value={Number(achievementRate)} />
 
               <div style={styles.miniGrid}>
-                <MiniCard label="現在実績" value={formatMoney(totalFinancial)} />
-                <MiniCard label="承認済み" value={`${summary?.approved ?? 0}件`} />
-                <MiniCard label="AI信頼度" value={`${averageConfidence}%`} />
+                <MiniCard
+                  label="現在実績"
+                  value={formatMoney(totalFinancial)}
+                />
+
+                <MiniCard
+                  label="承認済み"
+                  value={`${summary?.approved ?? 0}件`}
+                />
+
+                <MiniCard
+                  label="AI信頼度"
+                  value={`${averageConfidence}%`}
+                />
               </div>
             </Panel>
 
@@ -350,11 +372,13 @@ export default function DashboardPage() {
                 title="現場の行動"
                 text="挑戦・改善・共有を短文で入力"
               />
+
               <FlowItem
                 step="02"
                 title="AI補完＋上司確認"
                 text="AIが意味づけし、人が妥当性を確認"
               />
+
               <FlowItem
                 step="03"
                 title="経営判断へ接続"
@@ -363,8 +387,13 @@ export default function DashboardPage() {
             </Panel>
           </div>
 
-          <Panel title="要注意部門ランキング" tag="MANAGEMENT FOCUS">
-            <p style={styles.panelLead}>経営が優先的に支援すべき部門</p>
+          <Panel
+            title="要注意部門ランキング"
+            tag="MANAGEMENT FOCUS"
+          >
+            <p style={styles.panelLead}>
+              経営が優先的に支援すべき部門
+            </p>
 
             <div style={styles.attentionList}>
               {attentionDepartments.length === 0 ? (
@@ -372,84 +401,117 @@ export default function DashboardPage() {
                   要注意部門データがまだありません。
                 </div>
               ) : (
-                attentionDepartments.slice(0, 4).map((dept, index) => (
-                  <button
-                    key={`${dept.department}-${index}`}
-                    type="button"
-                    style={{
-                      ...styles.attentionCard,
-                      ...(selectedDepartment === dept.department
-                        ? styles.attentionCardSelected
-                        : {}),
-                    }}
-                    onClick={() =>
-                      setSelectedDepartment(
-                        normalizeDepartmentName(dept.department)
-                      )
-                    }
-                  >
-                    <div style={styles.attentionHeader}>
-                      <div>
-                        <p style={styles.attentionRank}>#{index + 1}</p>
-                        <h3 style={styles.attentionDept}>{dept.department}</h3>
-                      </div>
+                attentionDepartments
+                  .slice(0, 4)
+                  .map((dept, index) => (
+                    <button
+                      key={`${dept.department}-${index}`}
+                      type="button"
+                      style={{
+                        ...styles.attentionCard,
+                        ...(selectedDepartment === dept.department
+                          ? styles.attentionCardSelected
+                          : {}),
+                      }}
+                      onClick={() =>
+                        setSelectedDepartment(
+                          normalizeDepartmentName(
+                            dept.department
+                          )
+                        )
+                      }
+                    >
+                      <div style={styles.attentionHeader}>
+                        <div style={styles.flexItemMin}>
+                          <p style={styles.attentionRank}>
+                            #{index + 1}
+                          </p>
 
-                      <span
-                        style={{
-                          ...styles.attentionBadge,
-                          ...(dept.level === "high"
-                            ? styles.attentionHigh
-                            : dept.level === "middle"
+                          <h3 style={styles.attentionDept}>
+                            {dept.department}
+                          </h3>
+                        </div>
+
+                        <span
+                          style={{
+                            ...styles.attentionBadge,
+                            ...(dept.level === "high"
+                              ? styles.attentionHigh
+                              : dept.level === "middle"
                               ? styles.attentionMiddle
                               : styles.attentionLow),
-                        }}
-                      >
-                        {dept.label}
-                      </span>
-                    </div>
+                          }}
+                        >
+                          {dept.label}
+                        </span>
+                      </div>
 
-                    <div style={styles.attentionMetrics}>
-                      <div style={styles.attentionMetricBox}>
-                        <span>未承認</span>
-                        <strong>{dept.pending_count}件</strong>
-                      </div>
-                      <div style={styles.attentionMetricBox}>
-                        <span>投稿</span>
-                        <strong>{dept.post_count}件</strong>
-                      </div>
-                      <div style={styles.attentionMetricBox}>
-                        <span>ROI-P</span>
-                        <strong>{dept.total_points}P</strong>
-                      </div>
-                    </div>
+                      <div style={styles.attentionMetrics}>
+                        <div style={styles.attentionMetricBox}>
+                          <span>未承認</span>
+                          <strong>
+                            {dept.pending_count}件
+                          </strong>
+                        </div>
 
-                    <p style={styles.attentionReason}>{dept.reason}</p>
+                        <div style={styles.attentionMetricBox}>
+                          <span>投稿</span>
+                          <strong>
+                            {dept.post_count}件
+                          </strong>
+                        </div>
 
-                    <div style={styles.recommendBox}>
-                      <p style={styles.recommendTitle}>推奨支援アクション</p>
-                      <div style={styles.recommendList}>
-                        {dept.recommended_actions?.map((action, idx) => (
-                          <span key={idx} style={styles.recommendTag}>
-                            {action}
-                          </span>
-                        ))}
+                        <div style={styles.attentionMetricBox}>
+                          <span>ROI-P</span>
+                          <strong>
+                            {dept.total_points}P
+                          </strong>
+                        </div>
                       </div>
-                    </div>
-                  </button>
-                ))
+
+                      <p style={styles.attentionReason}>
+                        {dept.reason}
+                      </p>
+
+                      <div style={styles.recommendBox}>
+                        <p style={styles.recommendTitle}>
+                          推奨支援アクション
+                        </p>
+
+                        <div style={styles.recommendList}>
+                          {dept.recommended_actions?.map(
+                            (action, idx) => (
+                              <span
+                                key={idx}
+                                style={styles.recommendTag}
+                              >
+                                {action}
+                              </span>
+                            )
+                          )}
+                        </div>
+                      </div>
+                    </button>
+                  ))
               )}
             </div>
           </Panel>
 
-          <Panel title="部門別アクション詳細" tag="FIELD ACTION">
+          <Panel
+            title="部門別アクション詳細"
+            tag="FIELD ACTION"
+          >
             <div style={styles.filterBar}>
-              <div>
+              <div style={styles.filterLeft}>
                 <p style={styles.filterLabel}>対象部門</p>
+
                 <select
                   value={selectedDepartment}
                   onChange={(event) =>
                     setSelectedDepartment(
-                      normalizeDepartmentName(event.target.value)
+                      normalizeDepartmentName(
+                        event.target.value
+                      )
                     )
                   }
                   style={styles.select}
@@ -474,47 +536,78 @@ export default function DashboardPage() {
                 </div>
               ) : (
                 filteredPosts.map((post) => (
-                  <div key={post.id} style={styles.aiInsightCard}>
+                  <div
+                    key={post.id}
+                    style={styles.aiInsightCard}
+                  >
                     <div style={styles.aiInsightTop}>
-                      <div>
+                      <div style={styles.flexItemMin}>
                         <strong style={styles.postName}>
                           {post.employee_name}
                         </strong>
+
                         <span style={styles.aiInsightMeta}>
-                          {normalizeDepartmentName(post.department)} /{" "}
+                          {normalizeDepartmentName(
+                            post.department
+                          )}
+                          {" / "}
                           {statusLabel(post.status)}
                         </span>
                       </div>
 
                       <div style={styles.aiBadgeGroup}>
                         <span style={styles.aiBadge}>
-                          {post.manager_points ?? post.roi_points}P
+                          {post.manager_points ??
+                            post.roi_points}
+                          P
                         </span>
+
                         <span
                           style={{
                             ...styles.aiBadge,
-                            ...getConfidenceColor(post.confidence_score),
+                            ...getConfidenceColor(
+                              post.confidence_score
+                            ),
                           }}
                         >
-                          信頼度 {post.confidence_score}%
+                          信頼度
+                          {" "}
+                          {post.confidence_score}%
                         </span>
                       </div>
                     </div>
 
                     <div style={styles.detailBlock}>
-                      <span style={styles.detailLabel}>社員入力</span>
-                      <p style={styles.aiBehavior}>{post.behavior}</p>
+                      <span style={styles.detailLabel}>
+                        社員入力
+                      </span>
+
+                      <p style={styles.aiBehavior}>
+                        {post.behavior}
+                      </p>
                     </div>
 
                     <div style={styles.detailGrid}>
                       <div style={styles.aiCommentBox}>
-                        <span style={styles.aiLabel}>AI分析</span>
-                        <p>{post.ai_comment || "AIコメント未生成"}</p>
+                        <span style={styles.aiLabel}>
+                          AI分析
+                        </span>
+
+                        <p>
+                          {post.ai_comment ||
+                            "AIコメント未生成"}
+                        </p>
                       </div>
 
                       <div style={styles.managerCommentBox}>
-                        <span style={styles.managerLabel}>上司コメント</span>
-                        <p>{post.manager_comment || "上司コメント未入力"}</p>
+                        <span style={styles.managerLabel}>
+                          上司コメント
+                        </span>
+
+                        <p>
+                          {post.manager_comment ||
+                            "上司コメント未入力"}
+                        </p>
                       </div>
                     </div>
                   </div>
@@ -522,39 +615,52 @@ export default function DashboardPage() {
               )}
             </div>
           </Panel>
-
-          <div style={styles.twoColumn}>
+                    <div style={styles.twoColumn}>
             <Panel title="部門間評価乖離" tag="BIAS ALERT">
               <div style={styles.biasAlertGrid}>
                 {departmentBiasAlerts.length === 0 ? (
-                  <div style={styles.emptyBox}>評価乖離アラートはありません。</div>
+                  <div style={styles.emptyBox}>
+                    評価乖離アラートはありません。
+                  </div>
                 ) : (
-                  departmentBiasAlerts.slice(0, 3).map((item, index) => (
-                    <div
-                      key={index}
-                      style={{
-                        ...styles.biasAlertCard,
-                        ...(Math.abs(item.diff) >= 30
-                          ? styles.biasAlertWarning
-                          : styles.biasAlertNormal),
-                      }}
-                    >
-                      <div style={styles.biasAlertTop}>
-                        <div>
-                          <p style={styles.biasDept}>
-                            {normalizeDepartmentName(item.department)} /{" "}
-                            {item.category}
-                          </p>
-                          <strong style={styles.biasDiff}>
-                            {item.diff > 0 ? "+" : ""}
-                            {item.diff}%
-                          </strong>
+                  departmentBiasAlerts
+                    .slice(0, 3)
+                    .map((item, index) => (
+                      <div
+                        key={index}
+                        style={{
+                          ...styles.biasAlertCard,
+                          ...(Math.abs(item.diff) >= 30
+                            ? styles.biasAlertWarning
+                            : styles.biasAlertNormal),
+                        }}
+                      >
+                        <div style={styles.biasAlertTop}>
+                          <div style={styles.flexItemMin}>
+                            <p style={styles.biasDept}>
+                              {normalizeDepartmentName(
+                                item.department
+                              )}
+                              {" / "}
+                              {item.category}
+                            </p>
+
+                            <strong style={styles.biasDiff}>
+                              {item.diff > 0 ? "+" : ""}
+                              {item.diff}%
+                            </strong>
+                          </div>
+
+                          <div style={styles.biasBadge}>
+                            {item.risk}
+                          </div>
                         </div>
-                        <div style={styles.biasBadge}>{item.risk}</div>
+
+                        <p style={styles.biasDetail}>
+                          {item.detail}
+                        </p>
                       </div>
-                      <p style={styles.biasDetail}>{item.detail}</p>
-                    </div>
-                  ))
+                    ))
                 )}
               </div>
             </Panel>
@@ -566,7 +672,7 @@ export default function DashboardPage() {
                     ROIトレンドデータがまだありません。
                   </div>
                 ) : (
-                  <ResponsiveContainer width="100%" height={300}>
+                  <ResponsiveContainer width="100%" height="100%">
                     <LineChart data={roiTrendData}>
                       <CartesianGrid stroke="rgba(148,163,184,0.12)" />
                       <XAxis dataKey="month" stroke="#94a3b8" />
@@ -574,7 +680,10 @@ export default function DashboardPage() {
                       <Tooltip
                         contentStyle={styles.tooltip}
                         labelStyle={{ color: "#e5e7eb" }}
-                        formatter={(value) => [`${value}P`, "ROI-P"]}
+                        formatter={(value) => [
+                          `${value}P`,
+                          "ROI-P",
+                        ]}
                       />
                       <Line
                         type="monotone"
@@ -612,11 +721,17 @@ function mergeAttentionDepartments(items: AttentionDepartment[]) {
       ...current,
       department: name,
       post_count: current.post_count + item.post_count,
-      approved_count: current.approved_count + item.approved_count,
-      pending_count: current.pending_count + item.pending_count,
-      total_points: current.total_points + item.total_points,
+      approved_count:
+        current.approved_count + item.approved_count,
+      pending_count:
+        current.pending_count + item.pending_count,
+      total_points:
+        current.total_points + item.total_points,
       total_roi: current.total_roi + item.total_roi,
-      attention_score: Math.max(current.attention_score, item.attention_score),
+      attention_score: Math.max(
+        current.attention_score,
+        item.attention_score
+      ),
       level:
         current.level === "high" || item.level === "high"
           ? "high"
@@ -637,7 +752,7 @@ function mergeAttentionDepartments(items: AttentionDepartment[]) {
   );
 }
 
-function getConfidenceColor(score: number) {
+function getConfidenceColor(score: number): CSSProperties {
   if (score >= 80) {
     return {
       background: "rgba(16,185,129,0.18)",
@@ -665,6 +780,7 @@ function formatMoney(value: number) {
   if (value >= 100000000) {
     return `${(value / 100000000).toFixed(2)}億円`;
   }
+
   return `${Math.round(value / 10000).toLocaleString()}万円`;
 }
 
@@ -696,11 +812,17 @@ function Panel({
   );
 }
 
-function MiniCard({ label, value }: { label: string; value: string }) {
+function MiniCard({
+  label,
+  value,
+}: {
+  label: string;
+  value: string;
+}) {
   return (
     <div style={styles.miniCard}>
-      <p>{label}</p>
-      <strong>{value}</strong>
+      <p style={styles.miniCardLabel}>{label}</p>
+      <strong style={styles.miniCardValue}>{value}</strong>
     </div>
   );
 }
@@ -709,7 +831,10 @@ function Progress({ value }: { value: number }) {
   return (
     <div style={styles.progressBase}>
       <div
-        style={{ ...styles.progressBar, width: `${Math.min(value, 100)}%` }}
+        style={{
+          ...styles.progressBar,
+          width: `${Math.min(value, 100)}%`,
+        }}
       />
     </div>
   );
@@ -727,9 +852,10 @@ function FlowItem({
   return (
     <div style={styles.flowItem}>
       <div style={styles.stepCircle}>{step}</div>
-      <div>
-        <strong>{title}</strong>
-        <p>{text}</p>
+
+      <div style={styles.flexItemMin}>
+        <strong style={styles.flowTitle}>{title}</strong>
+        <p style={styles.flowText}>{text}</p>
       </div>
     </div>
   );
@@ -741,10 +867,24 @@ const styles: Record<string, CSSProperties> = {
     background:
       "radial-gradient(circle at top left, rgba(16,185,129,0.18), transparent 34%), linear-gradient(135deg, #020617 0%, #07111f 48%, #020617 100%)",
     color: "#e5e7eb",
-    padding: "40px",
-    fontFamily: "Inter, ui-sans-serif, system-ui, sans-serif",
+    padding: "clamp(14px, 4vw, 40px)",
+    fontFamily:
+      "Inter, ui-sans-serif, system-ui, sans-serif",
+    overflowX: "hidden",
+    boxSizing: "border-box",
   },
-  container: { maxWidth: "1180px", margin: "0 auto" },
+
+  container: {
+    width: "100%",
+    maxWidth: "1180px",
+    margin: "0 auto",
+    boxSizing: "border-box",
+  },
+
+  flexItemMin: {
+    minWidth: 0,
+  },
+
   errorBox: {
     marginBottom: "20px",
     padding: "16px 20px",
@@ -754,8 +894,27 @@ const styles: Record<string, CSSProperties> = {
     color: "#fecaca",
     fontSize: "14px",
     fontWeight: 800,
+    lineHeight: 1.7,
   },
-  hero: { marginBottom: "30px" },
+
+  hero: {
+    marginBottom: "30px",
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+    gap: "24px",
+    flexWrap: "wrap",
+  },
+
+  heroText: {
+    flex: "1 1 420px",
+    minWidth: 0,
+  },
+
+  logoutArea: {
+    flex: "0 0 auto",
+  },
+
   kicker: {
     color: "#34d399",
     fontSize: "14px",
@@ -763,68 +922,86 @@ const styles: Record<string, CSSProperties> = {
     letterSpacing: "0.12em",
     marginBottom: "10px",
   },
+
   title: {
-    fontSize: "46px",
+    fontSize: "clamp(28px, 6vw, 46px)",
     lineHeight: 1.18,
     fontWeight: 900,
     margin: 0,
     color: "#f8fafc",
+    wordBreak: "keep-all",
+    overflowWrap: "break-word",
   },
+
   description: {
     marginTop: "18px",
     color: "#cbd5e1",
-    fontSize: "19px",
+    fontSize: "clamp(15px, 2.4vw, 19px)",
     lineHeight: 1.8,
     maxWidth: "980px",
   },
+
   summaryGrid: {
     display: "grid",
-    gridTemplateColumns: "repeat(4, minmax(0, 1fr))",
-    gap: "18px",
+    gridTemplateColumns:
+      "repeat(auto-fit, minmax(min(100%, 170px), 1fr))",
+    gap: "14px",
     marginBottom: "26px",
   },
+
   card: {
+    minWidth: 0,
     background: "rgba(15,23,42,0.84)",
     border: "1px solid rgba(52,211,153,0.2)",
     borderRadius: "24px",
-    padding: "24px",
+    padding: "clamp(16px, 3vw, 24px)",
     boxShadow: "0 24px 80px rgba(0,0,0,0.34)",
+    boxSizing: "border-box",
   },
+
   cardLabel: {
     margin: 0,
     color: "#94a3b8",
-    fontSize: "15px",
+    fontSize: "14px",
     fontWeight: 800,
-    whiteSpace: "nowrap",
+    lineHeight: 1.4,
   },
+
   cardValue: {
     margin: "12px 0 8px",
-    fontSize: "40px",
+    fontSize: "clamp(26px, 6vw, 40px)",
     fontWeight: 900,
     color: "#f8fafc",
-    whiteSpace: "nowrap",
+    lineHeight: 1.1,
+    overflowWrap: "break-word",
   },
+
   cardSub: {
     margin: 0,
     color: "#94a3b8",
-    fontSize: "14px",
+    fontSize: "13px",
     lineHeight: 1.5,
-    whiteSpace: "nowrap",
   },
+
   twoColumn: {
     display: "grid",
-    gridTemplateColumns: "1fr 1fr",
+    gridTemplateColumns:
+      "repeat(auto-fit, minmax(min(100%, 300px), 1fr))",
     gap: "22px",
     marginBottom: "26px",
   },
+
   panel: {
+    minWidth: 0,
     background: "rgba(15,23,42,0.86)",
     border: "1px solid rgba(52,211,153,0.2)",
     borderRadius: "28px",
-    padding: "28px",
+    padding: "clamp(18px, 3vw, 28px)",
     boxShadow: "0 24px 80px rgba(0,0,0,0.34)",
     marginBottom: "26px",
+    boxSizing: "border-box",
   },
+
   panelTag: {
     margin: 0,
     color: "#34d399",
@@ -832,38 +1009,46 @@ const styles: Record<string, CSSProperties> = {
     fontWeight: 900,
     letterSpacing: "0.1em",
   },
+
   panelTitle: {
     margin: "8px 0 22px",
-    fontSize: "30px",
+    fontSize: "clamp(21px, 4.8vw, 30px)",
     color: "#f8fafc",
-    whiteSpace: "nowrap",
+    lineHeight: 1.3,
+    overflowWrap: "break-word",
   },
+
   panelLead: {
     margin: "-8px 0 20px",
     color: "#cbd5e1",
-    fontSize: "17px",
+    fontSize: "clamp(15px, 2.3vw, 17px)",
     lineHeight: 1.7,
   },
+
   kgiTop: {
     display: "flex",
     justifyContent: "space-between",
     alignItems: "flex-start",
     marginBottom: "18px",
     gap: "16px",
+    flexWrap: "wrap",
   },
+
   bigValue: {
     margin: 0,
-    fontSize: "56px",
+    fontSize: "clamp(38px, 10vw, 56px)",
     fontWeight: 900,
     color: "#6ee7b7",
-    whiteSpace: "nowrap",
+    lineHeight: 1.05,
   },
+
   muted: {
     margin: "6px 0 0",
     color: "#cbd5e1",
     fontSize: "15px",
-    whiteSpace: "nowrap",
+    lineHeight: 1.5,
   },
+
   badge: {
     padding: "10px 16px",
     borderRadius: "999px",
@@ -873,7 +1058,9 @@ const styles: Record<string, CSSProperties> = {
     fontSize: "13px",
     fontWeight: 900,
     whiteSpace: "nowrap",
+    flex: "0 0 auto",
   },
+
   progressBase: {
     height: "13px",
     background: "rgba(2,6,23,0.8)",
@@ -881,30 +1068,54 @@ const styles: Record<string, CSSProperties> = {
     overflow: "hidden",
     border: "1px solid rgba(148,163,184,0.12)",
   },
+
   progressBar: {
     height: "100%",
-    background: "linear-gradient(90deg, #10b981, #22d3ee, #a7f3d0)",
+    background:
+      "linear-gradient(90deg, #10b981, #22d3ee, #a7f3d0)",
   },
+
   miniGrid: {
     display: "grid",
-    gridTemplateColumns: "repeat(3, 1fr)",
+    gridTemplateColumns:
+      "repeat(auto-fit, minmax(min(100%, 120px), 1fr))",
     gap: "12px",
     marginTop: "20px",
   },
+
   miniCard: {
+    minWidth: 0,
     background: "rgba(2,6,23,0.44)",
     border: "1px solid rgba(148,163,184,0.12)",
     borderRadius: "18px",
     padding: "16px",
   },
+
+  miniCardLabel: {
+    margin: 0,
+    color: "#94a3b8",
+    fontSize: "13px",
+    fontWeight: 800,
+  },
+
+  miniCardValue: {
+    display: "block",
+    marginTop: "8px",
+    color: "#f8fafc",
+    fontSize: "20px",
+    lineHeight: 1.25,
+    overflowWrap: "break-word",
+  },
+
   flowItem: {
     display: "grid",
-    gridTemplateColumns: "52px 1fr",
+    gridTemplateColumns: "42px minmax(0, 1fr)",
     gap: "16px",
     padding: "16px 0",
     borderBottom: "1px solid rgba(148,163,184,0.12)",
     fontSize: "16px",
   },
+
   stepCircle: {
     width: "42px",
     height: "42px",
@@ -918,90 +1129,126 @@ const styles: Record<string, CSSProperties> = {
     fontWeight: 900,
     fontSize: "13px",
   },
+
+  flowTitle: {
+    display: "block",
+    color: "#f8fafc",
+    lineHeight: 1.5,
+  },
+
+  flowText: {
+    margin: "6px 0 0",
+    color: "#cbd5e1",
+    lineHeight: 1.7,
+  },
+
   attentionList: {
     display: "grid",
-    gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
+    gridTemplateColumns:
+      "repeat(auto-fit, minmax(min(100%, 280px), 1fr))",
     gap: "16px",
   },
+
   attentionCard: {
+    minWidth: 0,
     textAlign: "left",
     cursor: "pointer",
     background: "rgba(2,6,23,0.52)",
     border: "1px solid rgba(148,163,184,0.16)",
     borderRadius: "22px",
-    padding: "22px",
+    padding: "clamp(18px, 3vw, 22px)",
     color: "#e5e7eb",
+    boxSizing: "border-box",
   },
+
   attentionCardSelected: {
     border: "1px solid rgba(52,211,153,0.72)",
     boxShadow: "0 0 0 1px rgba(52,211,153,0.16)",
   },
+
   attentionHeader: {
     display: "flex",
     justifyContent: "space-between",
     alignItems: "flex-start",
     gap: "16px",
     marginBottom: "18px",
+    flexWrap: "wrap",
   },
+
   attentionRank: {
     margin: 0,
     color: "#34d399",
     fontSize: "13px",
     fontWeight: 900,
   },
+
   attentionDept: {
     margin: "4px 0 0",
     color: "#f8fafc",
-    fontSize: "24px",
+    fontSize: "clamp(20px, 5vw, 24px)",
     fontWeight: 900,
-    whiteSpace: "nowrap",
+    lineHeight: 1.25,
+    overflowWrap: "break-word",
   },
+
   attentionBadge: {
     padding: "9px 16px",
     borderRadius: "999px",
     fontSize: "13px",
     fontWeight: 900,
     whiteSpace: "nowrap",
+    flex: "0 0 auto",
   },
+
   attentionHigh: {
     background: "rgba(239,68,68,0.18)",
     border: "1px solid rgba(248,113,113,0.35)",
     color: "#fecaca",
   },
+
   attentionMiddle: {
     background: "rgba(245,158,11,0.18)",
     border: "1px solid rgba(251,191,36,0.35)",
     color: "#fde68a",
   },
+
   attentionLow: {
     background: "rgba(16,185,129,0.16)",
     border: "1px solid rgba(52,211,153,0.32)",
     color: "#bbf7d0",
   },
+
   attentionMetrics: {
     display: "grid",
-    gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
+    gridTemplateColumns:
+      "repeat(auto-fit, minmax(84px, 1fr))",
     gap: "12px",
     marginBottom: "16px",
   },
+
   attentionMetricBox: {
+    minWidth: 0,
     background: "rgba(15,23,42,0.72)",
     border: "1px solid rgba(148,163,184,0.14)",
     borderRadius: "16px",
     padding: "14px",
     fontSize: "14px",
   },
+
   attentionReason: {
     margin: 0,
     color: "#cbd5e1",
     fontSize: "15px",
     lineHeight: 1.8,
+    overflowWrap: "break-word",
   },
+
   recommendBox: {
     marginTop: "18px",
     paddingTop: "14px",
     borderTop: "1px solid rgba(148,163,184,0.12)",
   },
+
   recommendTitle: {
     margin: "0 0 10px",
     color: "#6ee7b7",
@@ -1009,11 +1256,13 @@ const styles: Record<string, CSSProperties> = {
     fontWeight: 900,
     letterSpacing: "0.06em",
   },
+
   recommendList: {
     display: "flex",
     gap: "8px",
     flexWrap: "wrap",
   },
+
   recommendTag: {
     padding: "8px 12px",
     borderRadius: "999px",
@@ -1023,21 +1272,31 @@ const styles: Record<string, CSSProperties> = {
     fontSize: "13px",
     fontWeight: 700,
   },
+
   filterBar: {
     display: "flex",
     justifyContent: "space-between",
     alignItems: "flex-end",
     gap: "20px",
     marginBottom: "22px",
+    flexWrap: "wrap",
   },
+
+  filterLeft: {
+    minWidth: 0,
+    flex: "1 1 240px",
+  },
+
   filterLabel: {
     margin: "0 0 8px",
     color: "#94a3b8",
     fontSize: "14px",
     fontWeight: 800,
   },
+
   select: {
-    width: "260px",
+    width: "min(260px, 100%)",
+    maxWidth: "100%",
     background: "rgba(2,6,23,0.72)",
     border: "1px solid rgba(52,211,153,0.36)",
     borderRadius: "14px",
@@ -1045,52 +1304,79 @@ const styles: Record<string, CSSProperties> = {
     color: "#f8fafc",
     fontSize: "16px",
     fontWeight: 800,
+    boxSizing: "border-box",
   },
+
   filterNote: {
     margin: 0,
     color: "#cbd5e1",
     fontSize: "16px",
     lineHeight: 1.6,
+    flex: "1 1 240px",
+    minWidth: 0,
   },
-  detailBlock: { marginTop: "16px" },
+
+  detailBlock: {
+    marginTop: "16px",
+  },
+
   detailLabel: {
     color: "#6ee7b7",
     fontSize: "12px",
     fontWeight: 900,
     letterSpacing: "0.08em",
   },
+
   detailGrid: {
     display: "grid",
-    gridTemplateColumns: "1fr 1fr",
+    gridTemplateColumns:
+      "repeat(auto-fit, minmax(min(100%, 240px), 1fr))",
     gap: "14px",
     marginTop: "14px",
   },
-  aiInsightList: { display: "grid", gap: "16px" },
+
+  aiInsightList: {
+    display: "grid",
+    gap: "16px",
+  },
+
   aiInsightCard: {
+    minWidth: 0,
     background: "rgba(2,6,23,0.44)",
     border: "1px solid rgba(52,211,153,0.18)",
     borderRadius: "22px",
-    padding: "22px",
+    padding: "clamp(18px, 3vw, 22px)",
+    boxSizing: "border-box",
   },
+
   aiInsightTop: {
     display: "flex",
     justifyContent: "space-between",
     gap: "18px",
     alignItems: "flex-start",
+    flexWrap: "wrap",
   },
-  postName: { fontSize: "18px" },
+
+  postName: {
+    fontSize: "18px",
+    lineHeight: 1.4,
+  },
+
   aiInsightMeta: {
     display: "block",
     marginTop: "6px",
     color: "#94a3b8",
     fontSize: "14px",
+    lineHeight: 1.5,
   },
+
   aiBadgeGroup: {
     display: "flex",
     gap: "8px",
     flexWrap: "wrap",
-    justifyContent: "flex-end",
+    justifyContent: "flex-start",
   },
+
   aiBadge: {
     padding: "7px 12px",
     borderRadius: "999px",
@@ -1101,13 +1387,17 @@ const styles: Record<string, CSSProperties> = {
     fontWeight: 900,
     whiteSpace: "nowrap",
   },
+
   aiBehavior: {
     margin: "8px 0 0",
     color: "#e5e7eb",
     lineHeight: 1.8,
     fontSize: "17px",
+    overflowWrap: "break-word",
   },
+
   aiCommentBox: {
+    minWidth: 0,
     background: "rgba(16,185,129,0.08)",
     border: "1px solid rgba(16,185,129,0.18)",
     borderRadius: "18px",
@@ -1115,8 +1405,11 @@ const styles: Record<string, CSSProperties> = {
     color: "#d1fae5",
     fontSize: "15px",
     lineHeight: 1.8,
+    overflowWrap: "break-word",
   },
+
   managerCommentBox: {
+    minWidth: 0,
     background: "rgba(59,130,246,0.08)",
     border: "1px solid rgba(147,197,253,0.18)",
     borderRadius: "18px",
@@ -1124,7 +1417,9 @@ const styles: Record<string, CSSProperties> = {
     color: "#dbeafe",
     fontSize: "15px",
     lineHeight: 1.8,
+    overflowWrap: "break-word",
   },
+
   aiLabel: {
     display: "inline-block",
     marginBottom: "6px",
@@ -1133,6 +1428,7 @@ const styles: Record<string, CSSProperties> = {
     fontWeight: 900,
     letterSpacing: "0.08em",
   },
+
   managerLabel: {
     display: "inline-block",
     marginBottom: "6px",
@@ -1141,40 +1437,55 @@ const styles: Record<string, CSSProperties> = {
     fontWeight: 900,
     letterSpacing: "0.08em",
   },
-  biasAlertGrid: { display: "grid", gap: "16px" },
+
+  biasAlertGrid: {
+    display: "grid",
+    gap: "16px",
+  },
+
   biasAlertCard: {
+    minWidth: 0,
     borderRadius: "22px",
     padding: "20px",
     border: "1px solid rgba(148,163,184,0.12)",
   },
+
   biasAlertWarning: {
     background: "rgba(245,158,11,0.12)",
     border: "1px solid rgba(245,158,11,0.28)",
   },
+
   biasAlertNormal: {
     background: "rgba(16,185,129,0.10)",
     border: "1px solid rgba(16,185,129,0.22)",
   },
+
   biasAlertTop: {
     display: "flex",
     justifyContent: "space-between",
     gap: "12px",
     alignItems: "flex-start",
+    flexWrap: "wrap",
   },
+
   biasDept: {
     margin: 0,
     color: "#cbd5e1",
     fontSize: "16px",
     fontWeight: 800,
+    lineHeight: 1.5,
+    overflowWrap: "break-word",
   },
+
   biasDiff: {
     display: "block",
     marginTop: "10px",
-    fontSize: "38px",
+    fontSize: "clamp(30px, 7vw, 38px)",
     fontWeight: 900,
     color: "#f8fafc",
-    whiteSpace: "nowrap",
+    lineHeight: 1.05,
   },
+
   biasBadge: {
     padding: "9px 15px",
     borderRadius: "999px",
@@ -1183,28 +1494,36 @@ const styles: Record<string, CSSProperties> = {
     fontSize: "13px",
     fontWeight: 900,
     whiteSpace: "nowrap",
+    flex: "0 0 auto",
   },
+
   biasDetail: {
     marginTop: "14px",
     color: "#e2e8f0",
     lineHeight: 1.8,
     fontSize: "15px",
+    overflowWrap: "break-word",
   },
+
   chartBox: {
     width: "100%",
-    height: "340px",
-    minHeight: "340px",
+    height: "320px",
+    minHeight: "320px",
     background: "rgba(2,6,23,0.28)",
     border: "1px solid rgba(148,163,184,0.1)",
     borderRadius: "22px",
-    padding: "16px",
+    padding: "10px",
+    overflow: "hidden",
+    boxSizing: "border-box",
   },
+
   tooltip: {
     background: "#020617",
     border: "1px solid rgba(52,211,153,0.28)",
     borderRadius: "12px",
     color: "#e5e7eb",
   },
+
   emptyBox: {
     padding: "20px",
     borderRadius: "18px",
@@ -1212,5 +1531,6 @@ const styles: Record<string, CSSProperties> = {
     border: "1px solid rgba(148,163,184,0.12)",
     color: "#94a3b8",
     fontSize: "15px",
+    lineHeight: 1.7,
   },
 };
