@@ -49,7 +49,7 @@ allow_origins=[
     "http://localhost:3000",
     "http://127.0.0.1:3000",
     "https://tech0-gen-11-step3-2-node-62.azurewebsites.net",
-],
+]
 
 
 app.add_middleware(
