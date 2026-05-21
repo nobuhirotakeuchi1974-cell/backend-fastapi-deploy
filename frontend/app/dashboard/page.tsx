@@ -96,6 +96,7 @@ const API_BASE =
   "https://tech0-gen-11-step3-2-py-62.azurewebsites.net";
 
 const ALL_DEPARTMENTS = "全部門";
+const VALUE_PER_POINT = 100000;
 
 function normalizeDepartmentName(name?: string | null) {
   const value = (name || "未設定").trim();
@@ -108,8 +109,6 @@ function normalizeDepartmentName(name?: string | null) {
 
   return value;
 }
-
-const VALUE_PER_POINT = 100000;
 
 function normalizeRfpPoint(value?: number | null) {
   const point = Number(value || 0);
@@ -266,7 +265,6 @@ export default function DashboardPage() {
         setPosts(rawPosts);
         setAttentionDepartments(mergedAttention);
         setRoiTrendData(presentationTrend);
-
         setErrorMessage("");
 
         if (mergedAttention[0]?.department) {
@@ -290,7 +288,6 @@ export default function DashboardPage() {
 
   const targetRoiPoints = summary?.target_roi_points ?? 6000;
   const currentRoiPoints = Math.round(summary?.total_roi_points ?? 0);
-
   const achievementRateRaw = summary?.achievement_rate ?? 0;
 
   const achievementRate =
@@ -440,9 +437,7 @@ export default function DashboardPage() {
 
               <div style={styles.miniGrid}>
                 <MiniCard label="現在実績" value={formatMoney(totalFinancial)} />
-
                 <MiniCard label="承認済み" value={`${summary?.approved ?? 0}件`} />
-
                 <MiniCard label="AI信頼度" value={`${averageConfidence}%`} />
               </div>
             </Panel>
@@ -453,13 +448,11 @@ export default function DashboardPage() {
                 title="現場の行動"
                 text="挑戦・改善・共有を短文で入力"
               />
-
               <FlowItem
                 step="02"
                 title="AI補完＋上司確認"
                 text="AIが意味づけし、人が妥当性を確認"
               />
-
               <FlowItem
                 step="03"
                 title="経営判断へ接続"
@@ -496,7 +489,6 @@ export default function DashboardPage() {
                     <div style={styles.attentionHeader}>
                       <div style={styles.flexItemMin}>
                         <p style={styles.attentionRank}>#{index + 1}</p>
-
                         <h3 style={styles.attentionDept}>{dept.department}</h3>
                       </div>
 
@@ -623,20 +615,17 @@ export default function DashboardPage() {
 
                     <div style={styles.detailBlock}>
                       <span style={styles.detailLabel}>社員入力</span>
-
                       <p style={styles.aiBehavior}>{post.behavior}</p>
                     </div>
 
                     <div style={styles.detailGrid}>
                       <div style={styles.aiCommentBox}>
                         <span style={styles.aiLabel}>AI分析</span>
-
                         <p>{post.ai_comment || "AIコメント未生成"}</p>
                       </div>
 
                       <div style={styles.managerCommentBox}>
                         <span style={styles.managerLabel}>上司コメント</span>
-
                         <p>{post.manager_comment || "上司コメント未入力"}</p>
                       </div>
                     </div>
@@ -707,14 +696,13 @@ export default function DashboardPage() {
                     </div>
                   </div>
 
-                  <p style={styles.biasFocusDetail}>
-                    {primaryBiasAlert.detail}
-                  </p>
+                  <p style={styles.biasFocusDetail}>{primaryBiasAlert.detail}</p>
 
                   <div style={styles.biasPoCNote}>
                     <strong>評価補助PoC：</strong>
                     社員投稿・上司評価・部門平均との差分から傾向を検知。
-                    AIが評価を決定するのではなく、上司が確認すべき論点を補助します。
+                    AIが評価を決定するのではなく、
+                    上司が確認すべき論点を補助します。
                   </div>
                 </div>
               )}
@@ -1544,7 +1532,7 @@ const styles: Record<string, CSSProperties> = {
     boxSizing: "border-box",
   },
 
-    biasMetricLabel: {
+  biasMetricLabel: {
     display: "block",
     color: "#cbd5e1",
     fontSize: "13px",
