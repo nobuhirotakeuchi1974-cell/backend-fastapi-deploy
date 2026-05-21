@@ -11,7 +11,7 @@ const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_BASE_URL ||
   "https://tech0-gen-11-step3-2-py-62.azurewebsites.net";
 
-const VALUE_PER_POINT = 10000;
+const VALUE_PER_POINT = 100000;
 
 type Post = {
   id: string;
@@ -35,7 +35,7 @@ type Post = {
   ai_comment?: string | null;
 };
 
-const pointOptions = [60, 65, 70, 75, 80, 85, 90, 95, 100];
+const pointOptions = [1, 5, 10];
 const ROLE: "manager" | "employee" = "manager";
 
 function normalizeCategory(category?: string) {
@@ -68,34 +68,32 @@ function formatDate(value?: string) {
   return new Date(value).toLocaleString("ja-JP");
 }
 
-function roundToFive(value: number) {
-  if (!Number.isFinite(value)) return 5;
-  return Math.max(5, Math.round(value / 5) * 5);
+function normalizeRfpPoint(value?: number | null) {
+  const point = Number(value || 0);
+
+  if (point <= 0) return 5;
+  if (point <= 2) return 1;
+  if (point <= 7) return 5;
+  return 10;
+}
+
+function getLevelLabel(point: number) {
+  if (point === 1) return "Lv.1";
+  if (point === 5) return "Lv.2";
+  return "Lv.3";
 }
 
 function getAiRecommendPoint(post: Post) {
-  if (typeof post.roi_points === "number" && post.roi_points > 0) {
-    return roundToFive(post.roi_points * 10);
-  }
-
-  if (typeof post.manager_points === "number" && post.manager_points > 0) {
-    return roundToFive(post.manager_points);
+  if (post.roi_points && post.roi_points > 0) {
+    return normalizeRfpPoint(post.roi_points);
   }
 
   const category = normalizeCategory(post.category);
-  if (category === "挑戦") return 80;
-  if (category === "生産性") return 80;
-  if (category === "助け合い") return 60;
-  if (category === "学習") return 60;
-  return 60;
-}
-
-function getConfirmedPoint(post: Post) {
-  if (typeof post.manager_points === "number" && post.manager_points > 0) {
-    return roundToFive(post.manager_points);
-  }
-
-  return getAiRecommendPoint(post);
+  if (category === "挑戦") return 5;
+  if (category === "生産性") return 5;
+  if (category === "助け合い") return 5;
+  if (category === "学習") return 1;
+  return 5;
 }
 
 function getBiasInsight(post: Post) {
@@ -278,13 +276,13 @@ export default function ManagerPage() {
   );
 
   const totalPoints = approvedPosts.reduce(
-    (sum, p) => sum + getConfirmedPoint(p),
+    (sum, p) => sum + normalizeRfpPoint(p.manager_points),
     0
   );
 
   const pendingPoints = pendingPosts.reduce((sum, p) => {
     const points = selectedPoints[p.id] ?? getAiRecommendPoint(p);
-    return sum + points;
+    return sum + normalizeRfpPoint(points);
   }, 0);
 
   const totalValue = totalPoints * VALUE_PER_POINT;
@@ -328,7 +326,7 @@ export default function ManagerPage() {
             }}
           >
             <KpiCard title="承認待ち" value={`${pendingPosts.length}件`} />
-            <KpiCard title="確定済みROI-P" value={`${totalPoints}P`} />
+            <KpiCard title="確定済みポイント" value={`${totalPoints}P`} />
             <KpiCard
               title="確定済み価値"
               value={`¥${totalValue.toLocaleString()}`}
@@ -514,9 +512,9 @@ function PostCard({
 }) {
   const category = normalizeCategory(post.category);
   const aiPoint = getAiRecommendPoint(post);
-  const currentPoints = selectedPoints[post.id] ?? aiPoint;
+  const currentPoints = normalizeRfpPoint(selectedPoints[post.id] ?? aiPoint);
   const estimatedValue = currentPoints * VALUE_PER_POINT;
-  const confirmedPoints = getConfirmedPoint(post);
+  const confirmedPoints = normalizeRfpPoint(post.manager_points ?? post.roi_points);
   const confirmedValue = confirmedPoints * VALUE_PER_POINT;
   const bias = getBiasInsight(post);
 
@@ -580,13 +578,13 @@ function PostCard({
                       : "border-white/10 bg-[#0b1528] text-slate-300 hover:border-emerald-400/40"
                   }`}
                 >
-                  {point}P
+                  {getLevelLabel(point)} / {point}P
                 </button>
               ))}
             </div>
 
             <div className="mt-4 rounded-2xl border border-emerald-400/20 bg-emerald-400/10 p-4 text-sm font-bold leading-6 text-emerald-200">
-              承認すると {currentPoints}P / ¥
+              承認すると {getLevelLabel(currentPoints)} / {currentPoints}P / ¥
               {estimatedValue.toLocaleString()} の人的資本価値として確定します。
             </div>
 
@@ -623,7 +621,7 @@ function PostCard({
 
       {mode === "approved" && (
         <div className="mt-5 rounded-2xl border border-emerald-400/20 bg-emerald-400/10 p-4 text-sm font-bold leading-6 text-emerald-200">
-          この行動は {confirmedPoints}P / ¥
+          この行動は {getLevelLabel(confirmedPoints)} / {confirmedPoints}P / ¥
           {confirmedValue.toLocaleString()} として価値確定済みです。
           {post.manager_comment && (
             <p className="mt-2 text-emerald-100">
@@ -664,7 +662,7 @@ function AiCommentPanel({
   return (
     <div className="mt-5 w-full max-w-full overflow-hidden rounded-3xl border border-cyan-400/20 bg-cyan-400/10 p-4 sm:p-5">
       <div className="flex flex-wrap items-center gap-2">
-        <Badge color="emerald">AI推定 {aiPoint}P</Badge>
+        <Badge color="emerald">AI推奨 {getLevelLabel(aiPoint)} / {aiPoint}P</Badge>
 
         <Badge color="sky">
           信頼度 {post.confidence_score ?? bias.trustScore}
@@ -695,14 +693,10 @@ function AiCommentPanel({
           gridTemplateColumns: "repeat(auto-fit, minmax(145px, 1fr))",
         }}
       >
-        <AiMetric label="推定ROI-P" value={`${aiPoint}P`} />
+        <AiMetric label="推定ROI-P" value={`${getLevelLabel(aiPoint)} / ${aiPoint}P`} />
         <AiMetric
           label="推定財務効果"
-          value={
-            typeof post.estimated_value === "number"
-              ? `¥${post.estimated_value.toLocaleString()}`
-              : "-"
-          }
+          value={`¥${(aiPoint * VALUE_PER_POINT).toLocaleString()}`}
         />
         <AiMetric
           label="推定削減時間"
@@ -745,7 +739,7 @@ function BiasInsightCard({
       <p className="text-xs font-black text-emerald-300">AI評価補助</p>
 
       <div className="mt-3 grid gap-3">
-        <InsightRow label="推奨ROI-P" value={`${aiPoint}P`} />
+        <InsightRow label="AI推奨ROI-P" value={`${getLevelLabel(aiPoint)} / ${aiPoint}P`} />
         <InsightRow label="信頼スコア" value={bias.trustScore} />
         <InsightRow
           label="部門平均との差"
