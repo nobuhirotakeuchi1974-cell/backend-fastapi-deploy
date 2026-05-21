@@ -229,53 +229,49 @@ export default function DashboardPage() {
       ? roiTrend
       : [];
 
+    const currentDisplayPoint = Math.max(
+      Math.round(Number(summaryData.total_roi_points || 0)),
+      38
+    );
+
     const presentationTrend =
       apiTrend.length >= 2
-        ? apiTrend
+        ? apiTrend.map((item: RoiTrendItem) => ({
+            ...item,
+            points: Math.round(Number(item.points || 0)),
+            financial_impact:
+              Math.round(Number(item.points || 0)) * VALUE_PER_POINT,
+          }))
         : [
             {
               month: "2026-01",
-              points: 320,
+              points: 5,
               count: 8,
-              financial_impact: 32000000,
+              financial_impact: 500000,
             },
             {
               month: "2026-02",
-              points: 820,
+              points: 12,
               count: 18,
-              financial_impact: 82000000,
+              financial_impact: 1200000,
             },
             {
               month: "2026-03",
-              points: 1450,
+              points: 20,
               count: 31,
-              financial_impact: 145000000,
+              financial_impact: 2000000,
             },
             {
               month: "2026-04",
-              points: 2600,
+              points: 28,
               count: 52,
-              financial_impact: 260000000,
+              financial_impact: 2800000,
             },
             {
               month: "2026-05",
-              points: Math.max(
-                Number(
-                  summaryData.total_roi_points || 0
-                ),
-                4280
-              ),
-              count: Math.max(
-                Number(summaryData.approved || 0),
-                76
-              ),
-              financial_impact: Math.max(
-                Number(
-                  summaryData.total_estimated_value ||
-                    0
-                ),
-                428000000
-              ),
+              points: currentDisplayPoint,
+              count: Math.max(Number(summaryData.approved || 0), 6),
+              financial_impact: currentDisplayPoint * VALUE_PER_POINT,
             },
           ];
 
@@ -316,7 +312,7 @@ export default function DashboardPage() {
       ? achievementRateRaw.toFixed(2)
       : achievementRateRaw.toFixed(1);
 
-  const totalFinancial = Math.round(summary?.total_estimated_value ?? 0);
+  const totalFinancial = currentRoiPoints * VALUE_PER_POINT;
   const averageConfidence = Math.round(summary?.average_confidence ?? 0);
   const departmentBiasAlerts = summary?.bias_alerts ?? [];
 
@@ -340,6 +336,23 @@ export default function DashboardPage() {
       )
       .slice(0, 4);
   }, [posts, selectedDepartment]);
+
+  const departmentRfpPoints = useMemo(() => {
+    const map = new Map<string, number>();
+
+    for (const post of posts) {
+      if (post.status !== "approved") continue;
+
+      const department = normalizeDepartmentName(post.department);
+      const point = normalizeRfpPoint(
+        post.manager_points ?? post.roi_points
+      );
+
+      map.set(department, (map.get(department) ?? 0) + point);
+    }
+
+    return map;
+  }, [posts]);
 
   const summaryCards = [
     {
@@ -553,7 +566,9 @@ export default function DashboardPage() {
                         <div style={styles.attentionMetricBox}>
                           <span>ROI-P</span>
                           <strong>
-                            {Math.round(Number(dept.total_points || 0)).toLocaleString()}P
+                            {(departmentRfpPoints.get(
+                              normalizeDepartmentName(dept.department)
+                            ) ?? 0).toLocaleString()}P
                           </strong>
                         </div>
                       </div>
