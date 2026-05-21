@@ -109,6 +109,38 @@ function normalizeDepartmentName(name?: string | null) {
   return value;
 }
 
+
+const VALUE_PER_POINT = 100000;
+
+function normalizeRfpPoint(value?: number | null) {
+  const point = Number(value || 0);
+
+  if (point >= 10) return 10;
+  if (point >= 5) return 5;
+  if (point >= 1) return 1;
+  return 1;
+}
+
+function rfpLevelLabel(point?: number | null) {
+  const normalized = normalizeRfpPoint(point);
+
+  if (normalized === 10) return "Lv.3 / 10P";
+  if (normalized === 5) return "Lv.2 / 5P";
+  return "Lv.1 / 1P";
+}
+
+function formatRfpPoint(value?: number | null) {
+  return `${normalizeRfpPoint(value)}P`;
+}
+
+function formatRfpMoneyFromPoint(value?: number | null) {
+  return formatMoney(normalizeRfpPoint(value) * VALUE_PER_POINT);
+}
+
+function formatIntegerPoint(value?: number | null) {
+  return `${Math.round(Number(value || 0)).toLocaleString()}P`;
+}
+
 export default function DashboardPage() {
   const [summary, setSummary] = useState<Summary | null>(null);
   const [posts, setPosts] = useState<PostItem[]>([]);
@@ -275,7 +307,7 @@ export default function DashboardPage() {
   }, []);
 
   const targetRoiPoints = summary?.target_roi_points ?? 6000;
-  const currentRoiPoints = summary?.total_roi_points ?? 0;
+  const currentRoiPoints = Math.round(summary?.total_roi_points ?? 0);
 
   const achievementRateRaw = summary?.achievement_rate ?? 0;
 
@@ -284,8 +316,8 @@ export default function DashboardPage() {
       ? achievementRateRaw.toFixed(2)
       : achievementRateRaw.toFixed(1);
 
-  const totalFinancial = summary?.total_estimated_value ?? 0;
-  const averageConfidence = summary?.average_confidence ?? 0;
+  const totalFinancial = Math.round(summary?.total_estimated_value ?? 0);
+  const averageConfidence = Math.round(summary?.average_confidence ?? 0);
   const departmentBiasAlerts = summary?.bias_alerts ?? [];
 
   const departmentOptions = useMemo(() => {
@@ -312,7 +344,7 @@ export default function DashboardPage() {
   const summaryCards = [
     {
       title: "全社ROI-P",
-      value: `${currentRoiPoints.toLocaleString()}P`,
+      value: formatIntegerPoint(currentRoiPoints),
       sub: `目標 ${targetRoiPoints.toLocaleString()}P`,
     },
     {
@@ -390,7 +422,7 @@ export default function DashboardPage() {
                   <p style={styles.bigValue}>{achievementRate}%</p>
 
                   <p style={styles.muted}>
-                    {currentRoiPoints.toLocaleString()}P /
+                    {formatIntegerPoint(currentRoiPoints)} /
                     {" "}
                     {targetRoiPoints.toLocaleString()}P
                   </p>
@@ -439,7 +471,7 @@ export default function DashboardPage() {
               <FlowItem
                 step="03"
                 title="経営判断へ接続"
-                text="支援優先度・ROI-Pとして可視化"
+                text="1P=10万円で財務換算し経営判断へ接続"
               />
             </Panel>
           </div>
@@ -521,7 +553,7 @@ export default function DashboardPage() {
                         <div style={styles.attentionMetricBox}>
                           <span>ROI-P</span>
                           <strong>
-                            {dept.total_points}P
+                            {Math.round(Number(dept.total_points || 0)).toLocaleString()}P
                           </strong>
                         </div>
                       </div>
@@ -614,9 +646,9 @@ export default function DashboardPage() {
 
                       <div style={styles.aiBadgeGroup}>
                         <span style={styles.aiBadge}>
-                          {post.manager_points ??
-                            post.roi_points}
-                          P
+                          {rfpLevelLabel(
+                            post.manager_points ?? post.roi_points
+                          )}
                         </span>
 
                         <span
@@ -629,7 +661,7 @@ export default function DashboardPage() {
                         >
                           信頼度
                           {" "}
-                          {post.confidence_score}%
+                          {Math.round(Number(post.confidence_score || 0))}%
                         </span>
                       </div>
                     </div>
@@ -733,12 +765,12 @@ export default function DashboardPage() {
                     <LineChart data={roiTrendData}>
                       <CartesianGrid stroke="rgba(148,163,184,0.12)" />
                       <XAxis dataKey="month" stroke="#94a3b8" />
-                      <YAxis stroke="#94a3b8" />
+                      <YAxis stroke="#94a3b8" tickFormatter={(value) => `${Math.round(Number(value || 0))}P`} />
                       <Tooltip
                         contentStyle={styles.tooltip}
                         labelStyle={{ color: "#e5e7eb" }}
                         formatter={(value) => [
-                          `${value}P`,
+                          `${Math.round(Number(value || 0)).toLocaleString()}P`,
                           "ROI-P",
                         ]}
                       />
