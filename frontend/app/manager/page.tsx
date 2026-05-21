@@ -35,7 +35,7 @@ type Post = {
   ai_comment?: string | null;
 };
 
-const pointOptions = [1, 5, 10];
+const pointOptions = [60, 65, 70, 75, 80, 85, 90, 95, 100];
 const ROLE: "manager" | "employee" = "manager";
 
 function normalizeCategory(category?: string) {
@@ -68,17 +68,34 @@ function formatDate(value?: string) {
   return new Date(value).toLocaleString("ja-JP");
 }
 
+function roundToFive(value: number) {
+  if (!Number.isFinite(value)) return 5;
+  return Math.max(5, Math.round(value / 5) * 5);
+}
+
 function getAiRecommendPoint(post: Post) {
-  if (post.roi_points && post.roi_points > 0) {
-    return Math.max(1, Math.round(post.roi_points * 10));
+  if (typeof post.roi_points === "number" && post.roi_points > 0) {
+    return roundToFive(post.roi_points * 10);
+  }
+
+  if (typeof post.manager_points === "number" && post.manager_points > 0) {
+    return roundToFive(post.manager_points);
   }
 
   const category = normalizeCategory(post.category);
-  if (category === "挑戦") return 10;
-  if (category === "生産性") return 10;
-  if (category === "助け合い") return 5;
-  if (category === "学習") return 5;
-  return 5;
+  if (category === "挑戦") return 80;
+  if (category === "生産性") return 80;
+  if (category === "助け合い") return 60;
+  if (category === "学習") return 60;
+  return 60;
+}
+
+function getConfirmedPoint(post: Post) {
+  if (typeof post.manager_points === "number" && post.manager_points > 0) {
+    return roundToFive(post.manager_points);
+  }
+
+  return getAiRecommendPoint(post);
 }
 
 function getBiasInsight(post: Post) {
@@ -202,7 +219,7 @@ export default function ManagerPage() {
         return;
       }
 
-      setMessage(`+${points}pt / ¥${(points * VALUE_PER_POINT).toLocaleString()}`);
+      setMessage(`+${points}P / ¥${(points * VALUE_PER_POINT).toLocaleString()}`);
       setShowAnimation(true);
       await fetchPosts();
 
@@ -261,7 +278,7 @@ export default function ManagerPage() {
   );
 
   const totalPoints = approvedPosts.reduce(
-    (sum, p) => sum + (Number(p.manager_points) || 0),
+    (sum, p) => sum + getConfirmedPoint(p),
     0
   );
 
@@ -311,7 +328,7 @@ export default function ManagerPage() {
             }}
           >
             <KpiCard title="承認待ち" value={`${pendingPosts.length}件`} />
-            <KpiCard title="確定済みポイント" value={`${totalPoints}pt`} />
+            <KpiCard title="確定済みROI-P" value={`${totalPoints}P`} />
             <KpiCard
               title="確定済み価値"
               value={`¥${totalValue.toLocaleString()}`}
@@ -499,7 +516,7 @@ function PostCard({
   const aiPoint = getAiRecommendPoint(post);
   const currentPoints = selectedPoints[post.id] ?? aiPoint;
   const estimatedValue = currentPoints * VALUE_PER_POINT;
-  const confirmedPoints = Number(post.manager_points) || 0;
+  const confirmedPoints = getConfirmedPoint(post);
   const confirmedValue = confirmedPoints * VALUE_PER_POINT;
   const bias = getBiasInsight(post);
 
@@ -563,13 +580,13 @@ function PostCard({
                       : "border-white/10 bg-[#0b1528] text-slate-300 hover:border-emerald-400/40"
                   }`}
                 >
-                  Lv.{point} / {point}pt
+                  {point}P
                 </button>
               ))}
             </div>
 
             <div className="mt-4 rounded-2xl border border-emerald-400/20 bg-emerald-400/10 p-4 text-sm font-bold leading-6 text-emerald-200">
-              承認すると {currentPoints}pt / ¥
+              承認すると {currentPoints}P / ¥
               {estimatedValue.toLocaleString()} の人的資本価値として確定します。
             </div>
 
@@ -606,7 +623,7 @@ function PostCard({
 
       {mode === "approved" && (
         <div className="mt-5 rounded-2xl border border-emerald-400/20 bg-emerald-400/10 p-4 text-sm font-bold leading-6 text-emerald-200">
-          この行動は {confirmedPoints}pt / ¥
+          この行動は {confirmedPoints}P / ¥
           {confirmedValue.toLocaleString()} として価値確定済みです。
           {post.manager_comment && (
             <p className="mt-2 text-emerald-100">
@@ -647,7 +664,7 @@ function AiCommentPanel({
   return (
     <div className="mt-5 w-full max-w-full overflow-hidden rounded-3xl border border-cyan-400/20 bg-cyan-400/10 p-4 sm:p-5">
       <div className="flex flex-wrap items-center gap-2">
-        <Badge color="emerald">AI推定 {post.roi_points ?? aiPoint}P</Badge>
+        <Badge color="emerald">AI推定 {aiPoint}P</Badge>
 
         <Badge color="sky">
           信頼度 {post.confidence_score ?? bias.trustScore}
@@ -678,7 +695,7 @@ function AiCommentPanel({
           gridTemplateColumns: "repeat(auto-fit, minmax(145px, 1fr))",
         }}
       >
-        <AiMetric label="推定ROI-P" value={`${post.roi_points ?? aiPoint}P`} />
+        <AiMetric label="推定ROI-P" value={`${aiPoint}P`} />
         <AiMetric
           label="推定財務効果"
           value={
@@ -728,7 +745,7 @@ function BiasInsightCard({
       <p className="text-xs font-black text-emerald-300">AI評価補助</p>
 
       <div className="mt-3 grid gap-3">
-        <InsightRow label="推奨点数" value={`${aiPoint}pt`} />
+        <InsightRow label="推奨ROI-P" value={`${aiPoint}P`} />
         <InsightRow label="信頼スコア" value={bias.trustScore} />
         <InsightRow
           label="部門平均との差"
