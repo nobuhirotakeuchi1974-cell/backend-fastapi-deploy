@@ -109,7 +109,6 @@ function normalizeDepartmentName(name?: string | null) {
   return value;
 }
 
-
 const VALUE_PER_POINT = 100000;
 
 function normalizeRfpPoint(value?: number | null) {
@@ -127,14 +126,6 @@ function rfpLevelLabel(point?: number | null) {
   if (normalized === 10) return "Lv.3 / 10P";
   if (normalized === 5) return "Lv.2 / 5P";
   return "Lv.1 / 1P";
-}
-
-function formatRfpPoint(value?: number | null) {
-  return `${normalizeRfpPoint(value)}P`;
-}
-
-function formatRfpMoneyFromPoint(value?: number | null) {
-  return formatMoney(normalizeRfpPoint(value) * VALUE_PER_POINT);
 }
 
 function formatIntegerPoint(value?: number | null) {
@@ -155,150 +146,145 @@ export default function DashboardPage() {
 
   useEffect(() => {
     async function fetchData() {
-  try {
-    const token = localStorage.getItem("token");
+      try {
+        const token = localStorage.getItem("token");
 
-    const authHeaders: HeadersInit = token
-      ? { Authorization: `Bearer ${token}` }
-      : {};
+        const authHeaders: HeadersInit = token
+          ? { Authorization: `Bearer ${token}` }
+          : {};
 
-    const [summaryRes, postsRes, attentionRes, roiTrendRes] =
-      await Promise.all([
-        fetch(`${API_BASE}/api/posts/summary`, {
-          cache: "no-store",
-          headers: authHeaders,
-        }),
-        fetch(`${API_BASE}/api/posts`, {
-          cache: "no-store",
-          headers: authHeaders,
-        }),
-        fetch(`${API_BASE}/api/analytics/attention-departments`, {
-          cache: "no-store",
-          headers: authHeaders,
-        }),
-        fetch(`${API_BASE}/api/posts/roi-trend`, {
-          cache: "no-store",
-          headers: authHeaders,
-        }),
-      ]);
+        const [summaryRes, postsRes, attentionRes, roiTrendRes] =
+          await Promise.all([
+            fetch(`${API_BASE}/api/posts/summary`, {
+              cache: "no-store",
+              headers: authHeaders,
+            }),
+            fetch(`${API_BASE}/api/posts`, {
+              cache: "no-store",
+              headers: authHeaders,
+            }),
+            fetch(`${API_BASE}/api/analytics/attention-departments`, {
+              cache: "no-store",
+              headers: authHeaders,
+            }),
+            fetch(`${API_BASE}/api/posts/roi-trend`, {
+              cache: "no-store",
+              headers: authHeaders,
+            }),
+          ]);
 
-    if (
-      !summaryRes.ok ||
-      !postsRes.ok ||
-      !attentionRes.ok ||
-      !roiTrendRes.ok
-    ) {
-      setErrorMessage(
-        `Dashboard API取得失敗: summary=${summaryRes.status}, posts=${postsRes.status}, attention=${attentionRes.status}, trend=${roiTrendRes.status}`
-      );
+        if (
+          !summaryRes.ok ||
+          !postsRes.ok ||
+          !attentionRes.ok ||
+          !roiTrendRes.ok
+        ) {
+          setErrorMessage(
+            `Dashboard API取得失敗: summary=${summaryRes.status}, posts=${postsRes.status}, attention=${attentionRes.status}, trend=${roiTrendRes.status}`
+          );
 
-      setSummary(null);
-      setPosts([]);
-      setAttentionDepartments([]);
-      setRoiTrendData([]);
-      return;
+          setSummary(null);
+          setPosts([]);
+          setAttentionDepartments([]);
+          setRoiTrendData([]);
+          return;
+        }
+
+        const summaryData = await summaryRes.json();
+        const postsData = await postsRes.json();
+        const attentionData = await attentionRes.json();
+        const roiTrend = await roiTrendRes.json();
+
+        const rawPosts = Array.isArray(postsData)
+          ? postsData
+          : Array.isArray(postsData.data)
+          ? postsData.data
+          : [];
+
+        const rawAttention = Array.isArray(attentionData.data)
+          ? attentionData.data
+          : [];
+
+        const normalizedAttention: AttentionDepartment[] = rawAttention.map(
+          (dept: AttentionDepartment) => ({
+            ...dept,
+            department: normalizeDepartmentName(dept.department),
+          })
+        );
+
+        const mergedAttention = mergeAttentionDepartments(normalizedAttention);
+
+        const apiTrend = Array.isArray(roiTrend) ? roiTrend : [];
+
+        const currentDisplayPoint = Math.max(
+          Math.round(Number(summaryData.total_roi_points || 0)),
+          38
+        );
+
+        const presentationTrend =
+          apiTrend.length >= 2
+            ? apiTrend.map((item: RoiTrendItem) => ({
+                ...item,
+                points: Math.round(Number(item.points || 0)),
+                financial_impact:
+                  Math.round(Number(item.points || 0)) * VALUE_PER_POINT,
+              }))
+            : [
+                {
+                  month: "2026-01",
+                  points: 5,
+                  count: 8,
+                  financial_impact: 500000,
+                },
+                {
+                  month: "2026-02",
+                  points: 12,
+                  count: 18,
+                  financial_impact: 1200000,
+                },
+                {
+                  month: "2026-03",
+                  points: 20,
+                  count: 31,
+                  financial_impact: 2000000,
+                },
+                {
+                  month: "2026-04",
+                  points: 28,
+                  count: 52,
+                  financial_impact: 2800000,
+                },
+                {
+                  month: "2026-05",
+                  points: currentDisplayPoint,
+                  count: Math.max(Number(summaryData.approved || 0), 6),
+                  financial_impact: currentDisplayPoint * VALUE_PER_POINT,
+                },
+              ];
+
+        setSummary(summaryData);
+        setPosts(rawPosts);
+        setAttentionDepartments(mergedAttention);
+        setRoiTrendData(presentationTrend);
+
+        setErrorMessage("");
+
+        if (mergedAttention[0]?.department) {
+          setSelectedDepartment(mergedAttention[0].department);
+        } else {
+          setSelectedDepartment(ALL_DEPARTMENTS);
+        }
+      } catch (error) {
+        console.error("dashboard fetch error", error);
+
+        setErrorMessage(
+          "Dashboard API取得に失敗しました。backend起動・JWT・CORSを確認してください。"
+        );
+      } finally {
+        setLoading(false);
+      }
     }
 
-    const summaryData = await summaryRes.json();
-    const postsData = await postsRes.json();
-    const attentionData = await attentionRes.json();
-    const roiTrend = await roiTrendRes.json();
-
-    const rawPosts = Array.isArray(postsData)
-      ? postsData
-      : Array.isArray(postsData.data)
-      ? postsData.data
-      : [];
-
-    const rawAttention = Array.isArray(attentionData.data)
-      ? attentionData.data
-      : [];
-
-    const normalizedAttention: AttentionDepartment[] =
-      rawAttention.map((dept: AttentionDepartment) => ({
-        ...dept,
-        department: normalizeDepartmentName(
-          dept.department
-        ),
-      }));
-
-    const mergedAttention =
-      mergeAttentionDepartments(normalizedAttention);
-
-    const apiTrend = Array.isArray(roiTrend)
-      ? roiTrend
-      : [];
-
-    const currentDisplayPoint = Math.max(
-      Math.round(Number(summaryData.total_roi_points || 0)),
-      38
-    );
-
-    const presentationTrend =
-      apiTrend.length >= 2
-        ? apiTrend.map((item: RoiTrendItem) => ({
-            ...item,
-            points: Math.round(Number(item.points || 0)),
-            financial_impact:
-              Math.round(Number(item.points || 0)) * VALUE_PER_POINT,
-          }))
-        : [
-            {
-              month: "2026-01",
-              points: 5,
-              count: 8,
-              financial_impact: 500000,
-            },
-            {
-              month: "2026-02",
-              points: 12,
-              count: 18,
-              financial_impact: 1200000,
-            },
-            {
-              month: "2026-03",
-              points: 20,
-              count: 31,
-              financial_impact: 2000000,
-            },
-            {
-              month: "2026-04",
-              points: 28,
-              count: 52,
-              financial_impact: 2800000,
-            },
-            {
-              month: "2026-05",
-              points: currentDisplayPoint,
-              count: Math.max(Number(summaryData.approved || 0), 6),
-              financial_impact: currentDisplayPoint * VALUE_PER_POINT,
-            },
-          ];
-
-    setSummary(summaryData);
-    setPosts(rawPosts);
-    setAttentionDepartments(mergedAttention);
-    setRoiTrendData(presentationTrend);
-
-    setErrorMessage("");
-
-    if (mergedAttention[0]?.department) {
-      setSelectedDepartment(
-        mergedAttention[0].department
-      );
-    } else {
-      setSelectedDepartment(ALL_DEPARTMENTS);
-    }
-  } catch (error) {
-    console.error("dashboard fetch error", error);
-
-    setErrorMessage(
-      "Dashboard API取得に失敗しました。backend起動・JWT・CORSを確認してください。"
-    );
-  } finally {
-    setLoading(false);
-  }
-}
     fetchData();
   }, []);
 
@@ -315,6 +301,14 @@ export default function DashboardPage() {
   const totalFinancial = currentRoiPoints * VALUE_PER_POINT;
   const averageConfidence = Math.round(summary?.average_confidence ?? 0);
   const departmentBiasAlerts = summary?.bias_alerts ?? [];
+
+  const primaryBiasAlert = useMemo(() => {
+    if (departmentBiasAlerts.length === 0) return null;
+
+    return [...departmentBiasAlerts].sort(
+      (a, b) => Math.abs(b.diff) - Math.abs(a.diff)
+    )[0];
+  }, [departmentBiasAlerts]);
 
   const departmentOptions = useMemo(() => {
     const names = Array.from(
@@ -344,9 +338,7 @@ export default function DashboardPage() {
       if (post.status !== "approved") continue;
 
       const department = normalizeDepartmentName(post.department);
-      const point = normalizeRfpPoint(
-        post.manager_points ?? post.roi_points
-      );
+      const point = normalizeRfpPoint(post.manager_points ?? post.roi_points);
 
       map.set(department, (map.get(department) ?? 0) + point);
     }
@@ -394,9 +386,7 @@ export default function DashboardPage() {
     <AuthGuard>
       <main style={styles.page}>
         <section style={styles.container}>
-          {errorMessage && (
-            <div style={styles.errorBox}>{errorMessage}</div>
-          )}
+          {errorMessage && <div style={styles.errorBox}>{errorMessage}</div>}
 
           <div style={styles.hero}>
             <div style={styles.heroText}>
@@ -418,7 +408,8 @@ export default function DashboardPage() {
               <LogoutButton />
             </div>
           </div>
-                    <div style={styles.summaryGrid}>
+
+          <div style={styles.summaryGrid}>
             {summaryCards.map((card) => (
               <Card key={card.title}>
                 <p style={styles.cardLabel}>{card.title}</p>
@@ -435,36 +426,24 @@ export default function DashboardPage() {
                   <p style={styles.bigValue}>{achievementRate}%</p>
 
                   <p style={styles.muted}>
-                    {formatIntegerPoint(currentRoiPoints)} /
-                    {" "}
+                    {formatIntegerPoint(currentRoiPoints)} /{" "}
                     {targetRoiPoints.toLocaleString()}P
                   </p>
                 </div>
 
                 <div style={styles.badge}>
-                  目標
-                  {" "}
-                  {formatMoney(summary?.target_value ?? 600000000)}
+                  目標 {formatMoney(summary?.target_value ?? 600000000)}
                 </div>
               </div>
 
               <Progress value={Number(achievementRate)} />
 
               <div style={styles.miniGrid}>
-                <MiniCard
-                  label="現在実績"
-                  value={formatMoney(totalFinancial)}
-                />
+                <MiniCard label="現在実績" value={formatMoney(totalFinancial)} />
 
-                <MiniCard
-                  label="承認済み"
-                  value={`${summary?.approved ?? 0}件`}
-                />
+                <MiniCard label="承認済み" value={`${summary?.approved ?? 0}件`} />
 
-                <MiniCard
-                  label="AI信頼度"
-                  value={`${averageConfidence}%`}
-                />
+                <MiniCard label="AI信頼度" value={`${averageConfidence}%`} />
               </div>
             </Panel>
 
@@ -489,13 +468,8 @@ export default function DashboardPage() {
             </Panel>
           </div>
 
-          <Panel
-            title="要注意部門ランキング"
-            tag="MANAGEMENT FOCUS"
-          >
-            <p style={styles.panelLead}>
-              経営が優先的に支援すべき部門
-            </p>
+          <Panel title="要注意部門ランキング" tag="MANAGEMENT FOCUS">
+            <p style={styles.panelLead}>経営が優先的に支援すべき部門</p>
 
             <div style={styles.attentionList}>
               {attentionDepartments.length === 0 ? (
@@ -503,108 +477,87 @@ export default function DashboardPage() {
                   要注意部門データがまだありません。
                 </div>
               ) : (
-                attentionDepartments
-                  .slice(0, 4)
-                  .map((dept, index) => (
-                    <button
-                      key={`${dept.department}-${index}`}
-                      type="button"
-                      style={{
-                        ...styles.attentionCard,
-                        ...(selectedDepartment === dept.department
-                          ? styles.attentionCardSelected
-                          : {}),
-                      }}
-                      onClick={() =>
-                        setSelectedDepartment(
-                          normalizeDepartmentName(
-                            dept.department
-                          )
-                        )
-                      }
-                    >
-                      <div style={styles.attentionHeader}>
-                        <div style={styles.flexItemMin}>
-                          <p style={styles.attentionRank}>
-                            #{index + 1}
-                          </p>
+                attentionDepartments.slice(0, 4).map((dept, index) => (
+                  <button
+                    key={`${dept.department}-${index}`}
+                    type="button"
+                    style={{
+                      ...styles.attentionCard,
+                      ...(selectedDepartment === dept.department
+                        ? styles.attentionCardSelected
+                        : {}),
+                    }}
+                    onClick={() =>
+                      setSelectedDepartment(
+                        normalizeDepartmentName(dept.department)
+                      )
+                    }
+                  >
+                    <div style={styles.attentionHeader}>
+                      <div style={styles.flexItemMin}>
+                        <p style={styles.attentionRank}>#{index + 1}</p>
 
-                          <h3 style={styles.attentionDept}>
-                            {dept.department}
-                          </h3>
-                        </div>
-
-                        <span
-                          style={{
-                            ...styles.attentionBadge,
-                            ...(dept.level === "high"
-                              ? styles.attentionHigh
-                              : dept.level === "middle"
-                              ? styles.attentionMiddle
-                              : styles.attentionLow),
-                          }}
-                        >
-                          {dept.label}
-                        </span>
+                        <h3 style={styles.attentionDept}>{dept.department}</h3>
                       </div>
 
-                      <div style={styles.attentionMetrics}>
-                        <div style={styles.attentionMetricBox}>
-                          <span>未承認</span>
-                          <strong>
-                            {dept.pending_count}件
-                          </strong>
-                        </div>
+                      <span
+                        style={{
+                          ...styles.attentionBadge,
+                          ...(dept.level === "high"
+                            ? styles.attentionHigh
+                            : dept.level === "middle"
+                            ? styles.attentionMiddle
+                            : styles.attentionLow),
+                        }}
+                      >
+                        {dept.label}
+                      </span>
+                    </div>
 
-                        <div style={styles.attentionMetricBox}>
-                          <span>投稿</span>
-                          <strong>
-                            {dept.post_count}件
-                          </strong>
-                        </div>
+                    <div style={styles.attentionMetrics}>
+                      <div style={styles.attentionMetricBox}>
+                        <span>未承認</span>
+                        <strong>{dept.pending_count}件</strong>
+                      </div>
 
-                        <div style={styles.attentionMetricBox}>
-                          <span>ROI-P</span>
-                          <strong>
-                            {(departmentRfpPoints.get(
+                      <div style={styles.attentionMetricBox}>
+                        <span>投稿</span>
+                        <strong>{dept.post_count}件</strong>
+                      </div>
+
+                      <div style={styles.attentionMetricBox}>
+                        <span>ROI-P</span>
+                        <strong>
+                          {(
+                            departmentRfpPoints.get(
                               normalizeDepartmentName(dept.department)
-                            ) ?? 0).toLocaleString()}P
-                          </strong>
-                        </div>
+                            ) ?? 0
+                          ).toLocaleString()}
+                          P
+                        </strong>
                       </div>
+                    </div>
 
-                      <p style={styles.attentionReason}>
-                        {dept.reason}
-                      </p>
+                    <p style={styles.attentionReason}>{dept.reason}</p>
 
-                      <div style={styles.recommendBox}>
-                        <p style={styles.recommendTitle}>
-                          推奨支援アクション
-                        </p>
+                    <div style={styles.recommendBox}>
+                      <p style={styles.recommendTitle}>推奨支援アクション</p>
 
-                        <div style={styles.recommendList}>
-                          {dept.recommended_actions?.map(
-                            (action, idx) => (
-                              <span
-                                key={idx}
-                                style={styles.recommendTag}
-                              >
-                                {action}
-                              </span>
-                            )
-                          )}
-                        </div>
+                      <div style={styles.recommendList}>
+                        {dept.recommended_actions?.map((action, idx) => (
+                          <span key={idx} style={styles.recommendTag}>
+                            {action}
+                          </span>
+                        ))}
                       </div>
-                    </button>
-                  ))
+                    </div>
+                  </button>
+                ))
               )}
             </div>
           </Panel>
 
-          <Panel
-            title="部門別アクション詳細"
-            tag="FIELD ACTION"
-          >
+          <Panel title="部門別アクション詳細" tag="FIELD ACTION">
             <div style={styles.filterBar}>
               <div style={styles.filterLeft}>
                 <p style={styles.filterLabel}>対象部門</p>
@@ -613,9 +566,7 @@ export default function DashboardPage() {
                   value={selectedDepartment}
                   onChange={(event) =>
                     setSelectedDepartment(
-                      normalizeDepartmentName(
-                        event.target.value
-                      )
+                      normalizeDepartmentName(event.target.value)
                     )
                   }
                   style={styles.select}
@@ -640,10 +591,7 @@ export default function DashboardPage() {
                 </div>
               ) : (
                 filteredPosts.map((post) => (
-                  <div
-                    key={post.id}
-                    style={styles.aiInsightCard}
-                  >
+                  <div key={post.id} style={styles.aiInsightCard}>
                     <div style={styles.aiInsightTop}>
                       <div style={styles.flexItemMin}>
                         <strong style={styles.postName}>
@@ -651,67 +599,45 @@ export default function DashboardPage() {
                         </strong>
 
                         <span style={styles.aiInsightMeta}>
-                          {normalizeDepartmentName(
-                            post.department
-                          )}
-                          {" / "}
+                          {normalizeDepartmentName(post.department)} /{" "}
                           {statusLabel(post.status)}
                         </span>
                       </div>
 
                       <div style={styles.aiBadgeGroup}>
                         <span style={styles.aiBadge}>
-                          {rfpLevelLabel(
-                            post.manager_points ?? post.roi_points
-                          )}
+                          {rfpLevelLabel(post.manager_points ?? post.roi_points)}
                         </span>
 
                         <span
                           style={{
                             ...styles.aiBadge,
-                            ...getConfidenceColor(
-                              post.confidence_score
-                            ),
+                            ...getConfidenceColor(post.confidence_score),
                           }}
                         >
-                          信頼度
-                          {" "}
+                          信頼度{" "}
                           {Math.round(Number(post.confidence_score || 0))}%
                         </span>
                       </div>
                     </div>
 
                     <div style={styles.detailBlock}>
-                      <span style={styles.detailLabel}>
-                        社員入力
-                      </span>
+                      <span style={styles.detailLabel}>社員入力</span>
 
-                      <p style={styles.aiBehavior}>
-                        {post.behavior}
-                      </p>
+                      <p style={styles.aiBehavior}>{post.behavior}</p>
                     </div>
 
                     <div style={styles.detailGrid}>
                       <div style={styles.aiCommentBox}>
-                        <span style={styles.aiLabel}>
-                          AI分析
-                        </span>
+                        <span style={styles.aiLabel}>AI分析</span>
 
-                        <p>
-                          {post.ai_comment ||
-                            "AIコメント未生成"}
-                        </p>
+                        <p>{post.ai_comment || "AIコメント未生成"}</p>
                       </div>
 
                       <div style={styles.managerCommentBox}>
-                        <span style={styles.managerLabel}>
-                          上司コメント
-                        </span>
+                        <span style={styles.managerLabel}>上司コメント</span>
 
-                        <p>
-                          {post.manager_comment ||
-                            "上司コメント未入力"}
-                        </p>
+                        <p>{post.manager_comment || "上司コメント未入力"}</p>
                       </div>
                     </div>
                   </div>
@@ -719,54 +645,79 @@ export default function DashboardPage() {
               )}
             </div>
           </Panel>
-                    <div style={styles.twoColumn}>
+
+          <div style={styles.twoColumn}>
             <Panel title="部門間評価乖離" tag="BIAS ALERT">
-              <div style={styles.biasAlertGrid}>
-                {departmentBiasAlerts.length === 0 ? (
-                  <div style={styles.emptyBox}>
-                    評価乖離アラートはありません。
+              {!primaryBiasAlert ? (
+                <div style={styles.emptyBox}>
+                  評価乖離アラートはありません。
+                </div>
+              ) : (
+                <div style={styles.biasFocusCard}>
+                  <div style={styles.biasFocusHeader}>
+                    <div style={styles.flexItemMin}>
+                      <p style={styles.biasFocusLabel}>最重要確認ポイント</p>
+
+                      <h3 style={styles.biasFocusDept}>
+                        {normalizeDepartmentName(primaryBiasAlert.department)} /{" "}
+                        {primaryBiasAlert.category}
+                      </h3>
+                    </div>
+
+                    <span style={styles.biasFocusBadge}>
+                      {primaryBiasAlert.risk}
+                    </span>
                   </div>
-                ) : (
-                  departmentBiasAlerts
-                    .slice(0, 3)
-                    .map((item, index) => (
-                      <div
-                        key={index}
-                        style={{
-                          ...styles.biasAlertCard,
-                          ...(Math.abs(item.diff) >= 30
-                            ? styles.biasAlertWarning
-                            : styles.biasAlertNormal),
-                        }}
-                      >
-                        <div style={styles.biasAlertTop}>
-                          <div style={styles.flexItemMin}>
-                            <p style={styles.biasDept}>
-                              {normalizeDepartmentName(
-                                item.department
-                              )}
-                              {" / "}
-                              {item.category}
-                            </p>
 
-                            <strong style={styles.biasDiff}>
-                              {item.diff > 0 ? "+" : ""}
-                              {item.diff}%
-                            </strong>
-                          </div>
+                  <div style={styles.biasFocusBody}>
+                    <div style={styles.biasMainMetric}>
+                      <span style={styles.biasMetricLabel}>全社平均との差</span>
 
-                          <div style={styles.biasBadge}>
-                            {item.risk}
-                          </div>
-                        </div>
+                      <strong style={styles.biasFocusDiff}>
+                        {primaryBiasAlert.diff > 0 ? "+" : ""}
+                        {primaryBiasAlert.diff}%
+                      </strong>
+                    </div>
 
-                        <p style={styles.biasDetail}>
-                          {item.detail}
-                        </p>
+                    <div style={styles.biasSubMetrics}>
+                      <div style={styles.biasSubMetricBox}>
+                        <span>部門平均</span>
+                        <strong>
+                          {Number(
+                            primaryBiasAlert.department_average_roi || 0
+                          ).toFixed(1)}
+                          P
+                        </strong>
                       </div>
-                    ))
-                )}
-              </div>
+
+                      <div style={styles.biasSubMetricBox}>
+                        <span>全社平均</span>
+                        <strong>
+                          {Number(
+                            primaryBiasAlert.company_average_roi || 0
+                          ).toFixed(1)}
+                          P
+                        </strong>
+                      </div>
+
+                      <div style={styles.biasSubMetricBox}>
+                        <span>対象件数</span>
+                        <strong>{primaryBiasAlert.count}件</strong>
+                      </div>
+                    </div>
+                  </div>
+
+                  <p style={styles.biasFocusDetail}>
+                    {primaryBiasAlert.detail}
+                  </p>
+
+                  <div style={styles.biasPoCNote}>
+                    <strong>評価補助PoC：</strong>
+                    社員投稿・上司評価・部門平均との差分から傾向を検知。
+                    AIが評価を決定するのではなく、上司が確認すべき論点を補助します。
+                  </div>
+                </div>
+              )}
             </Panel>
 
             <Panel title="ROIトレンド" tag="TREND">
@@ -780,7 +731,12 @@ export default function DashboardPage() {
                     <LineChart data={roiTrendData}>
                       <CartesianGrid stroke="rgba(148,163,184,0.12)" />
                       <XAxis dataKey="month" stroke="#94a3b8" />
-                      <YAxis stroke="#94a3b8" tickFormatter={(value) => `${Math.round(Number(value || 0))}P`} />
+                      <YAxis
+                        stroke="#94a3b8"
+                        tickFormatter={(value) =>
+                          `${Math.round(Number(value || 0))}P`
+                        }
+                      />
                       <Tooltip
                         contentStyle={styles.tooltip}
                         labelStyle={{ color: "#e5e7eb" }}
@@ -825,17 +781,11 @@ function mergeAttentionDepartments(items: AttentionDepartment[]) {
       ...current,
       department: name,
       post_count: current.post_count + item.post_count,
-      approved_count:
-        current.approved_count + item.approved_count,
-      pending_count:
-        current.pending_count + item.pending_count,
-      total_points:
-        current.total_points + item.total_points,
+      approved_count: current.approved_count + item.approved_count,
+      pending_count: current.pending_count + item.pending_count,
+      total_points: current.total_points + item.total_points,
       total_roi: current.total_roi + item.total_roi,
-      attention_score: Math.max(
-        current.attention_score,
-        item.attention_score
-      ),
+      attention_score: Math.max(current.attention_score, item.attention_score),
       level:
         current.level === "high" || item.level === "high"
           ? "high"
@@ -916,13 +866,7 @@ function Panel({
   );
 }
 
-function MiniCard({
-  label,
-  value,
-}: {
-  label: string;
-  value: string;
-}) {
+function MiniCard({ label, value }: { label: string; value: string }) {
   return (
     <div style={styles.miniCard}>
       <p style={styles.miniCardLabel}>{label}</p>
@@ -972,8 +916,7 @@ const styles: Record<string, CSSProperties> = {
       "radial-gradient(circle at top left, rgba(16,185,129,0.18), transparent 34%), linear-gradient(135deg, #020617 0%, #07111f 48%, #020617 100%)",
     color: "#e5e7eb",
     padding: "clamp(14px, 4vw, 40px)",
-    fontFamily:
-      "Inter, ui-sans-serif, system-ui, sans-serif",
+    fontFamily: "Inter, ui-sans-serif, system-ui, sans-serif",
     overflowX: "hidden",
     boxSizing: "border-box",
   },
@@ -1047,8 +990,7 @@ const styles: Record<string, CSSProperties> = {
 
   summaryGrid: {
     display: "grid",
-    gridTemplateColumns:
-      "repeat(auto-fit, minmax(min(100%, 170px), 1fr))",
+    gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 170px), 1fr))",
     gap: "14px",
     marginBottom: "26px",
   },
@@ -1089,8 +1031,7 @@ const styles: Record<string, CSSProperties> = {
 
   twoColumn: {
     display: "grid",
-    gridTemplateColumns:
-      "repeat(auto-fit, minmax(min(100%, 300px), 1fr))",
+    gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 300px), 1fr))",
     gap: "22px",
     marginBottom: "26px",
   },
@@ -1175,14 +1116,12 @@ const styles: Record<string, CSSProperties> = {
 
   progressBar: {
     height: "100%",
-    background:
-      "linear-gradient(90deg, #10b981, #22d3ee, #a7f3d0)",
+    background: "linear-gradient(90deg, #10b981, #22d3ee, #a7f3d0)",
   },
 
   miniGrid: {
     display: "grid",
-    gridTemplateColumns:
-      "repeat(auto-fit, minmax(min(100%, 120px), 1fr))",
+    gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 120px), 1fr))",
     gap: "12px",
     marginTop: "20px",
   },
@@ -1248,8 +1187,7 @@ const styles: Record<string, CSSProperties> = {
 
   attentionList: {
     display: "grid",
-    gridTemplateColumns:
-      "repeat(auto-fit, minmax(min(100%, 280px), 1fr))",
+    gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 280px), 1fr))",
     gap: "16px",
   },
 
@@ -1324,8 +1262,7 @@ const styles: Record<string, CSSProperties> = {
 
   attentionMetrics: {
     display: "grid",
-    gridTemplateColumns:
-      "repeat(auto-fit, minmax(84px, 1fr))",
+    gridTemplateColumns: "repeat(auto-fit, minmax(84px, 1fr))",
     gap: "12px",
     marginBottom: "16px",
   },
@@ -1433,8 +1370,7 @@ const styles: Record<string, CSSProperties> = {
 
   detailGrid: {
     display: "grid",
-    gridTemplateColumns:
-      "repeat(auto-fit, minmax(min(100%, 240px), 1fr))",
+    gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 240px), 1fr))",
     gap: "14px",
     marginTop: "14px",
   },
@@ -1542,58 +1478,48 @@ const styles: Record<string, CSSProperties> = {
     letterSpacing: "0.08em",
   },
 
-  biasAlertGrid: {
-    display: "grid",
-    gap: "16px",
-  },
-
-  biasAlertCard: {
+  biasFocusCard: {
     minWidth: 0,
-    borderRadius: "22px",
-    padding: "20px",
-    border: "1px solid rgba(148,163,184,0.12)",
+    borderRadius: "24px",
+    padding: "clamp(20px, 3vw, 26px)",
+    background:
+      "linear-gradient(135deg, rgba(245,158,11,0.16), rgba(16,185,129,0.08))",
+    border: "1px solid rgba(245,158,11,0.34)",
+    boxShadow: "0 20px 70px rgba(0,0,0,0.28)",
+    boxSizing: "border-box",
   },
 
-  biasAlertWarning: {
-    background: "rgba(245,158,11,0.12)",
-    border: "1px solid rgba(245,158,11,0.28)",
-  },
-
-  biasAlertNormal: {
-    background: "rgba(16,185,129,0.10)",
-    border: "1px solid rgba(16,185,129,0.22)",
-  },
-
-  biasAlertTop: {
+  biasFocusHeader: {
     display: "flex",
     justifyContent: "space-between",
-    gap: "12px",
     alignItems: "flex-start",
+    gap: "16px",
     flexWrap: "wrap",
+    marginBottom: "18px",
   },
 
-  biasDept: {
+  biasFocusLabel: {
     margin: 0,
-    color: "#cbd5e1",
-    fontSize: "16px",
-    fontWeight: 800,
-    lineHeight: 1.5,
+    color: "#fbbf24",
+    fontSize: "13px",
+    fontWeight: 900,
+    letterSpacing: "0.08em",
+  },
+
+  biasFocusDept: {
+    margin: "8px 0 0",
+    color: "#f8fafc",
+    fontSize: "clamp(22px, 5vw, 30px)",
+    fontWeight: 900,
+    lineHeight: 1.25,
     overflowWrap: "break-word",
   },
 
-  biasDiff: {
-    display: "block",
-    marginTop: "10px",
-    fontSize: "clamp(30px, 7vw, 38px)",
-    fontWeight: 900,
-    color: "#f8fafc",
-    lineHeight: 1.05,
-  },
-
-  biasBadge: {
-    padding: "9px 15px",
+  biasFocusBadge: {
+    padding: "10px 16px",
     borderRadius: "999px",
-    background: "rgba(2,6,23,0.44)",
+    background: "rgba(2,6,23,0.54)",
+    border: "1px solid rgba(248,250,252,0.12)",
     color: "#f8fafc",
     fontSize: "13px",
     fontWeight: 900,
@@ -1601,11 +1527,73 @@ const styles: Record<string, CSSProperties> = {
     flex: "0 0 auto",
   },
 
-  biasDetail: {
-    marginTop: "14px",
+  biasFocusBody: {
+    display: "grid",
+    gridTemplateColumns: "minmax(150px, 0.9fr) minmax(0, 1.4fr)",
+    gap: "16px",
+    alignItems: "stretch",
+    marginBottom: "18px",
+  },
+
+  biasMainMetric: {
+    minWidth: 0,
+    background: "rgba(2,6,23,0.52)",
+    border: "1px solid rgba(248,250,252,0.12)",
+    borderRadius: "20px",
+    padding: "18px",
+    boxSizing: "border-box",
+  },
+
+    biasMetricLabel: {
+    display: "block",
+    color: "#cbd5e1",
+    fontSize: "13px",
+    fontWeight: 900,
+    marginBottom: "10px",
+  },
+
+  biasFocusDiff: {
+    display: "block",
+    color: "#34d399",
+    fontSize: "clamp(26px, 5vw, 40px)",
+    fontWeight: 900,
+    lineHeight: 1.1,
+  },
+
+  biasSubMetrics: {
+    display: "grid",
+    gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 120px), 1fr))",
+    gap: "12px",
+  },
+
+  biasSubMetricBox: {
+    minWidth: 0,
+    background: "rgba(15,23,42,0.58)",
+    border: "1px solid rgba(148,163,184,0.14)",
+    borderRadius: "18px",
+    padding: "16px",
+    color: "#cbd5e1",
+    fontSize: "13px",
+    fontWeight: 800,
+    boxSizing: "border-box",
+  },
+
+  biasFocusDetail: {
+    margin: "0 0 16px",
     color: "#e2e8f0",
     lineHeight: 1.8,
     fontSize: "15px",
+    overflowWrap: "break-word",
+  },
+
+  biasPoCNote: {
+    padding: "14px 16px",
+    borderRadius: "18px",
+    background: "rgba(16,185,129,0.12)",
+    border: "1px solid rgba(52,211,153,0.24)",
+    color: "#d1fae5",
+    fontSize: "14px",
+    lineHeight: 1.8,
     overflowWrap: "break-word",
   },
 
