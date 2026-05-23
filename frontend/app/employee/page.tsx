@@ -15,14 +15,18 @@ const categories = [
 ];
 
 const departments = [
-  { value: "営業", label: "営業" },
+  { value: "営業部", label: "営業部" },
   { value: "本社", label: "本社" },
-  { value: "現場", label: "現場" },
+  { value: "業務運用部門", label: "業務運用部門" },
 ];
 
 const aiSuggestions = [
   {
-    label: "改善提案",
+    label: "挑戦",
+    text: "新規顧客向け提案に挑戦し、商談機会を創出した。",
+  },
+  {
+    label: "改善",
     text: "営業資料を改善し、提案準備時間を30分短縮した。",
   },
   {
@@ -32,10 +36,6 @@ const aiSuggestions = [
   {
     label: "学習",
     text: "新しい分析ツールを学習し、レポート作成を効率化した。",
-  },
-  {
-    label: "挑戦",
-    text: "新規顧客向け提案に挑戦し、商談機会を創出した。",
   },
 ];
 
