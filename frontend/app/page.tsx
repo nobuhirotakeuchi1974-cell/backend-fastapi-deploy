@@ -4,23 +4,37 @@ export default function HomePage() {
   return (
     <main className="min-h-screen overflow-hidden bg-[#020817] text-white">
       <section className="mx-auto flex min-h-screen max-w-7xl flex-col justify-center px-6 py-10">
-        <div className="rounded-[36px] border border-emerald-400/25 bg-gradient-to-r from-[#03101f] via-[#06192d] to-[#063124] p-10 shadow-2xl shadow-emerald-500/10">
+        <div className="rounded-[36px] border border-emerald-400/25 bg-gradient-to-r from-[#03101f] via-[#06192d] to-[#063124] px-5 py-10 sm:p-10 shadow-2xl shadow-emerald-500/10">
           <div className="grid gap-10 lg:grid-cols-[1.05fr_0.95fr] lg:items-center">
             <div className="pt-2 lg:pt-4">
               <div className="inline-flex items-center rounded-full border border-emerald-400/30 bg-emerald-400/10 px-5 py-2 text-sm font-black text-emerald-300 shadow-lg shadow-emerald-500/10">
                 ● Human Capital OS
               </div>
 
-              <h1 className="mt-10 max-w-[700px] text-[64px] font-black leading-[1.05] tracking-[-0.04em]">
+              <h1
+className="mt-10 max-w-[700px] font-black"
+  style={{
+    fontSize: "clamp(28px, 8vw, 64px)",
+    lineHeight: 1.08,
+    letterSpacing: "-0.02em",
+  }}
+>
   人的資本を、
-  <span className="block whitespace-nowrap text-emerald-400">
+  <span
+    className="block whitespace-nowrap text-emerald-400"
+    style={{
+      fontSize: "clamp(28px, 8vw, 64px)",
+      lineHeight: 1.08,
+      letterSpacing: "-0.02em",
+    }}
+  >
     経営の力に変える。
   </span>
 </h1>
             </div>
 
             <div className="rounded-[28px] border border-white/10 bg-[#06111f]/85 p-7 shadow-2xl backdrop-blur">
-              <h2 className="text-2xl font-black">Human Capital Flow とは</h2>
+              <h2 className="text-l font-black">Human Capital Flow とは</h2>
 
               <p className="mt-4 leading-8 text-slate-300">
                 社員の行動が、評価・分析を通じて、経営判断や人的資本戦略につながる一連の流れを指します。
@@ -78,12 +92,12 @@ export default function HomePage() {
                   <p className="text-xs font-bold text-emerald-300">
                     最終アウトプット
                   </p>
-                  <p className="mt-1 text-2xl font-black">
+                  <p className="mt-1 text-l font-black">
                     経営判断・人的資本戦略
                   </p>
                 </div>
 
-                <div className="text-3xl text-emerald-300">→</div>
+                <div className="text-3xl text-emerald-300"></div>
               </div>
             </div>
           </div>

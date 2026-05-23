@@ -307,10 +307,20 @@ export default function ManagerPage() {
                   <span className="block">ダッシュボード</span>
                 </h1>
 
-                <p className="mt-5 text-sm leading-7 text-slate-200 sm:max-w-4xl sm:text-base sm:leading-8">
-                  AI分析コメント、推定ROI-P、信頼スコア、部門間評価乖離を確認しながら、
-                  社員行動を人的資本価値として確定します。
-                </p>
+                <p
+  className="mt-5 text-slate-200 sm:max-w-4xl sm:text-base"
+  style={{
+    fontSize: "14px",
+    lineHeight: 1.8,
+    overflowWrap: "break-word",
+    wordBreak: "break-word",
+    whiteSpace: "normal",
+  }}
+>
+  AI分析コメント・推定ROI-P・信頼スコア・
+  部門間評価乖離を確認しながら、
+  社員行動を人的資本価値として確定します。
+</p>
               </div>
 
               <div>

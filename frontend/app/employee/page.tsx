@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_BASE_URL || "https://tech0-gen-11-step3-2-py-62.azurewebsites.net";
 
-const VALUE_PER_POINT = 10000;
+const VALUE_PER_POINT = 100000;
 
 const categories = [
   { value: "challenge", label: "挑戦" },
@@ -66,6 +66,14 @@ type Post = {
 function formatDate(value?: string | null) {
   if (!value) return "-";
   return new Date(value).toLocaleString("ja-JP");
+}
+function normalizeRfpPoint(value?: number | null) {
+  const point = Number(value || 0);
+
+  if (point >= 10) return 10;
+  if (point >= 5) return 5;
+
+  return 1;
 }
 
 export default function EmployeePage() {
@@ -139,9 +147,13 @@ export default function EmployeePage() {
   const pending = posts.filter((p) => p.status === "pending");
 
   const totalPoints = approved.reduce(
-    (sum, p) => sum + (Number(p.manager_points) || Number(p.points) || 0),
-    0
-  );
+  (sum, p) =>
+    sum +
+    normalizeRfpPoint(
+      Number(p.manager_points) || Number(p.points) || 0
+    ),
+  0
+);
 
   const totalValue = totalPoints * VALUE_PER_POINT;
 
@@ -287,8 +299,9 @@ export default function EmployeePage() {
               .slice()
               .reverse()
               .map((post) => {
-                const points =
-                  Number(post.manager_points) || Number(post.points) || 0;
+                const points = normalizeRfpPoint(
+                  Number(post.manager_points) || Number(post.points) || 0
+               );
 
                 const value = points * VALUE_PER_POINT;
 

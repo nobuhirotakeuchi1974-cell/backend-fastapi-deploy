@@ -62,7 +62,7 @@ type PostItem = {
   behavior: string;
   category: string;
   status: string;
-  roi_points: number;
+  roi_points?: number;
   confidence_score: number;
   ai_comment: string;
   manager_comment?: string;
@@ -84,7 +84,7 @@ type AttentionDepartment = {
   recommended_actions: string[];
 };
 
-type RoiTrendItem = {
+type DynamicRoiTrendItem = {
   month: string;
   points: number;
   count: number;
@@ -103,7 +103,12 @@ function normalizeDepartmentName(name?: string | null) {
 
   if (value === "営業部" || value === "営業") return "営業部";
   if (value === "本社" || value === "本社部門") return "本社";
-  if (value === "業務運用部門" || value === "業務運用") {
+
+  if (
+    value === "業務運用部門" ||
+    value === "業務運用" ||
+    value === "現場"
+  ) {
     return "業務運用部門";
   }
 
@@ -111,12 +116,20 @@ function normalizeDepartmentName(name?: string | null) {
 }
 
 function normalizeRfpPoint(value?: number | null) {
-  const point = Number(value || 0);
+  const point = Number(value ?? 0);
 
   if (point >= 10) return 10;
   if (point >= 5) return 5;
   if (point >= 1) return 1;
-  return 1;
+  return 0;
+}
+
+function isApproved(post: PostItem) {
+  return String(post.status || "").trim().toLowerCase() === "approved";
+}
+
+function getPostPoint(post: PostItem) {
+  return normalizeRfpPoint(post.manager_points ?? post.roi_points ?? 0);
 }
 
 function rfpLevelLabel(point?: number | null) {
@@ -124,7 +137,8 @@ function rfpLevelLabel(point?: number | null) {
 
   if (normalized === 10) return "Lv.3 / 10P";
   if (normalized === 5) return "Lv.2 / 5P";
-  return "Lv.1 / 1P";
+  if (normalized === 1) return "Lv.1 / 1P";
+  return "未評価";
 }
 
 function formatIntegerPoint(value?: number | null) {
@@ -137,7 +151,6 @@ export default function DashboardPage() {
   const [attentionDepartments, setAttentionDepartments] = useState<
     AttentionDepartment[]
   >([]);
-  const [roiTrendData, setRoiTrendData] = useState<RoiTrendItem[]>([]);
   const [selectedDepartment, setSelectedDepartment] =
     useState(ALL_DEPARTMENTS);
   const [loading, setLoading] = useState(true);
@@ -152,47 +165,35 @@ export default function DashboardPage() {
           ? { Authorization: `Bearer ${token}` }
           : {};
 
-        const [summaryRes, postsRes, attentionRes, roiTrendRes] =
-          await Promise.all([
-            fetch(`${API_BASE}/api/posts/summary`, {
-              cache: "no-store",
-              headers: authHeaders,
-            }),
-            fetch(`${API_BASE}/api/posts`, {
-              cache: "no-store",
-              headers: authHeaders,
-            }),
-            fetch(`${API_BASE}/api/analytics/attention-departments`, {
-              cache: "no-store",
-              headers: authHeaders,
-            }),
-            fetch(`${API_BASE}/api/posts/roi-trend`, {
-              cache: "no-store",
-              headers: authHeaders,
-            }),
-          ]);
+        const [summaryRes, postsRes, attentionRes] = await Promise.all([
+          fetch(`${API_BASE}/api/posts/summary`, {
+            cache: "no-store",
+            headers: authHeaders,
+          }),
+          fetch(`${API_BASE}/api/posts`, {
+            cache: "no-store",
+            headers: authHeaders,
+          }),
+          fetch(`${API_BASE}/api/analytics/attention-departments`, {
+            cache: "no-store",
+            headers: authHeaders,
+          }),
+        ]);
 
-        if (
-          !summaryRes.ok ||
-          !postsRes.ok ||
-          !attentionRes.ok ||
-          !roiTrendRes.ok
-        ) {
+        if (!summaryRes.ok || !postsRes.ok || !attentionRes.ok) {
           setErrorMessage(
-            `Dashboard API取得失敗: summary=${summaryRes.status}, posts=${postsRes.status}, attention=${attentionRes.status}, trend=${roiTrendRes.status}`
+            `Dashboard API取得失敗: summary=${summaryRes.status}, posts=${postsRes.status}, attention=${attentionRes.status}`
           );
 
           setSummary(null);
           setPosts([]);
           setAttentionDepartments([]);
-          setRoiTrendData([]);
           return;
         }
 
         const summaryData = await summaryRes.json();
         const postsData = await postsRes.json();
         const attentionData = await attentionRes.json();
-        const roiTrend = await roiTrendRes.json();
 
         const rawPosts = Array.isArray(postsData)
           ? postsData
@@ -213,58 +214,9 @@ export default function DashboardPage() {
 
         const mergedAttention = mergeAttentionDepartments(normalizedAttention);
 
-        const apiTrend = Array.isArray(roiTrend) ? roiTrend : [];
-
-        const currentDisplayPoint = Math.max(
-          Math.round(Number(summaryData.total_roi_points || 0)),
-          38
-        );
-
-        const presentationTrend =
-          apiTrend.length >= 2
-            ? apiTrend.map((item: RoiTrendItem) => ({
-                ...item,
-                points: Math.round(Number(item.points || 0)),
-                financial_impact:
-                  Math.round(Number(item.points || 0)) * VALUE_PER_POINT,
-              }))
-            : [
-                {
-                  month: "2026-01",
-                  points: 5,
-                  count: 8,
-                  financial_impact: 500000,
-                },
-                {
-                  month: "2026-02",
-                  points: 12,
-                  count: 18,
-                  financial_impact: 1200000,
-                },
-                {
-                  month: "2026-03",
-                  points: 20,
-                  count: 31,
-                  financial_impact: 2000000,
-                },
-                {
-                  month: "2026-04",
-                  points: 28,
-                  count: 52,
-                  financial_impact: 2800000,
-                },
-                {
-                  month: "2026-05",
-                  points: currentDisplayPoint,
-                  count: Math.max(Number(summaryData.approved || 0), 6),
-                  financial_impact: currentDisplayPoint * VALUE_PER_POINT,
-                },
-              ];
-
         setSummary(summaryData);
         setPosts(rawPosts);
         setAttentionDepartments(mergedAttention);
-        setRoiTrendData(presentationTrend);
         setErrorMessage("");
 
         if (mergedAttention[0]?.department) {
@@ -287,17 +239,70 @@ export default function DashboardPage() {
   }, []);
 
   const targetRoiPoints = summary?.target_roi_points ?? 6000;
-  const currentRoiPoints = Math.round(summary?.total_roi_points ?? 0);
-  const achievementRateRaw = summary?.achievement_rate ?? 0;
-
-  const achievementRate =
-    achievementRateRaw < 1
-      ? achievementRateRaw.toFixed(2)
-      : achievementRateRaw.toFixed(1);
-
-  const totalFinancial = currentRoiPoints * VALUE_PER_POINT;
   const averageConfidence = Math.round(summary?.average_confidence ?? 0);
   const departmentBiasAlerts = summary?.bias_alerts ?? [];
+
+  const departmentRfpPoints = useMemo(() => {
+    const map = new Map<string, number>();
+
+    for (const post of posts) {
+      if (!isApproved(post)) continue;
+
+      const department = normalizeDepartmentName(post.department);
+      const point = getPostPoint(post);
+
+      map.set(department, (map.get(department) ?? 0) + point);
+    }
+
+    return map;
+  }, [posts]);
+
+  const rfpTotalPoints = useMemo(() => {
+    return Array.from(departmentRfpPoints.values()).reduce(
+      (sum, point) => sum + point,
+      0
+    );
+  }, [departmentRfpPoints]);
+
+  const achievementRate =
+    targetRoiPoints > 0
+      ? ((rfpTotalPoints / targetRoiPoints) * 100).toFixed(2)
+      : "0.00";
+
+  const dynamicRoiTrend = useMemo<DynamicRoiTrendItem[]>(() => {
+    const monthlyMap = new Map<string, { points: number; count: number }>();
+
+    posts
+      .filter((post) => isApproved(post))
+      .forEach((post) => {
+        const date = new Date(post.created_at);
+        if (Number.isNaN(date.getTime())) return;
+
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, "0");
+        const monthKey = `${year}-${month}`;
+        const point = getPostPoint(post);
+
+        const current = monthlyMap.get(monthKey) ?? {
+          points: 0,
+          count: 0,
+        };
+
+        monthlyMap.set(monthKey, {
+          points: current.points + point,
+          count: current.count + 1,
+        });
+      });
+
+    return Array.from(monthlyMap.entries())
+      .map(([month, value]) => ({
+        month,
+        points: value.points,
+        count: value.count,
+        financial_impact: value.points * VALUE_PER_POINT,
+      }))
+      .sort((a, b) => a.month.localeCompare(b.month));
+  }, [posts]);
 
   const primaryBiasAlert = useMemo(() => {
     if (departmentBiasAlerts.length === 0) return null;
@@ -328,30 +333,15 @@ export default function DashboardPage() {
       .slice(0, 4);
   }, [posts, selectedDepartment]);
 
-  const departmentRfpPoints = useMemo(() => {
-    const map = new Map<string, number>();
-
-    for (const post of posts) {
-      if (post.status !== "approved") continue;
-
-      const department = normalizeDepartmentName(post.department);
-      const point = normalizeRfpPoint(post.manager_points ?? post.roi_points);
-
-      map.set(department, (map.get(department) ?? 0) + point);
-    }
-
-    return map;
-  }, [posts]);
-
   const summaryCards = [
     {
       title: "全社ROI-P",
-      value: formatIntegerPoint(currentRoiPoints),
+      value: formatIntegerPoint(rfpTotalPoints),
       sub: `目標 ${targetRoiPoints.toLocaleString()}P`,
     },
     {
       title: "財務インパクト",
-      value: formatMoney(totalFinancial),
+      value: formatMoney(rfpTotalPoints * VALUE_PER_POINT),
       sub: "人的資本行動を財務換算",
     },
     {
@@ -423,7 +413,7 @@ export default function DashboardPage() {
                   <p style={styles.bigValue}>{achievementRate}%</p>
 
                   <p style={styles.muted}>
-                    {formatIntegerPoint(currentRoiPoints)} /{" "}
+                    {formatIntegerPoint(rfpTotalPoints)} /{" "}
                     {targetRoiPoints.toLocaleString()}P
                   </p>
                 </div>
@@ -436,7 +426,10 @@ export default function DashboardPage() {
               <Progress value={Number(achievementRate)} />
 
               <div style={styles.miniGrid}>
-                <MiniCard label="現在実績" value={formatMoney(totalFinancial)} />
+                <MiniCard
+                  label="現在実績"
+                  value={formatMoney(rfpTotalPoints * VALUE_PER_POINT)}
+                />
                 <MiniCard label="承認済み" value={`${summary?.approved ?? 0}件`} />
                 <MiniCard label="AI信頼度" value={`${averageConfidence}%`} />
               </div>
@@ -708,15 +701,20 @@ export default function DashboardPage() {
               )}
             </Panel>
 
-            <Panel title="ROIトレンド" tag="TREND">
+            <Panel title="人的資本ROI-Pトレンド" tag="TREND">
+              <p style={styles.panelLead}>
+                承認済み投稿の上司評価ポイントをRFP基準に正規化し、
+                月別に自動集計
+              </p>
+
               <div style={styles.chartBox}>
-                {roiTrendData.length === 0 ? (
+                {dynamicRoiTrend.length === 0 ? (
                   <div style={styles.emptyBox}>
-                    ROIトレンドデータがまだありません。
+                    承認済み投稿がまだないため、ROIトレンドデータはありません。
                   </div>
                 ) : (
                   <ResponsiveContainer width="100%" height="100%">
-                    <LineChart data={roiTrendData}>
+                    <LineChart data={dynamicRoiTrend}>
                       <CartesianGrid stroke="rgba(148,163,184,0.12)" />
                       <XAxis dataKey="month" stroke="#94a3b8" />
                       <YAxis
@@ -908,18 +906,13 @@ const styles: Record<string, CSSProperties> = {
     overflowX: "hidden",
     boxSizing: "border-box",
   },
-
   container: {
     width: "100%",
     maxWidth: "1180px",
     margin: "0 auto",
     boxSizing: "border-box",
   },
-
-  flexItemMin: {
-    minWidth: 0,
-  },
-
+  flexItemMin: { minWidth: 0 },
   errorBox: {
     marginBottom: "20px",
     padding: "16px 20px",
@@ -931,7 +924,6 @@ const styles: Record<string, CSSProperties> = {
     fontWeight: 800,
     lineHeight: 1.7,
   },
-
   hero: {
     marginBottom: "30px",
     display: "flex",
@@ -940,16 +932,8 @@ const styles: Record<string, CSSProperties> = {
     gap: "24px",
     flexWrap: "wrap",
   },
-
-  heroText: {
-    flex: "1 1 420px",
-    minWidth: 0,
-  },
-
-  logoutArea: {
-    flex: "0 0 auto",
-  },
-
+  heroText: { flex: "1 1 420px", minWidth: 0 },
+  logoutArea: { flex: "0 0 auto" },
   kicker: {
     color: "#34d399",
     fontSize: "14px",
@@ -957,7 +941,6 @@ const styles: Record<string, CSSProperties> = {
     letterSpacing: "0.12em",
     marginBottom: "10px",
   },
-
   title: {
     fontSize: "clamp(28px, 6vw, 46px)",
     lineHeight: 1.18,
@@ -967,7 +950,6 @@ const styles: Record<string, CSSProperties> = {
     wordBreak: "keep-all",
     overflowWrap: "break-word",
   },
-
   description: {
     marginTop: "18px",
     color: "#cbd5e1",
@@ -975,14 +957,12 @@ const styles: Record<string, CSSProperties> = {
     lineHeight: 1.8,
     maxWidth: "980px",
   },
-
   summaryGrid: {
     display: "grid",
     gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 170px), 1fr))",
     gap: "14px",
     marginBottom: "26px",
   },
-
   card: {
     minWidth: 0,
     background: "rgba(15,23,42,0.84)",
@@ -992,7 +972,6 @@ const styles: Record<string, CSSProperties> = {
     boxShadow: "0 24px 80px rgba(0,0,0,0.34)",
     boxSizing: "border-box",
   },
-
   cardLabel: {
     margin: 0,
     color: "#94a3b8",
@@ -1000,7 +979,6 @@ const styles: Record<string, CSSProperties> = {
     fontWeight: 800,
     lineHeight: 1.4,
   },
-
   cardValue: {
     margin: "12px 0 8px",
     fontSize: "clamp(26px, 6vw, 40px)",
@@ -1009,21 +987,18 @@ const styles: Record<string, CSSProperties> = {
     lineHeight: 1.1,
     overflowWrap: "break-word",
   },
-
   cardSub: {
     margin: 0,
     color: "#94a3b8",
     fontSize: "13px",
     lineHeight: 1.5,
   },
-
   twoColumn: {
     display: "grid",
     gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 300px), 1fr))",
     gap: "22px",
     marginBottom: "26px",
   },
-
   panel: {
     minWidth: 0,
     background: "rgba(15,23,42,0.86)",
@@ -1034,7 +1009,6 @@ const styles: Record<string, CSSProperties> = {
     marginBottom: "26px",
     boxSizing: "border-box",
   },
-
   panelTag: {
     margin: 0,
     color: "#34d399",
@@ -1042,7 +1016,6 @@ const styles: Record<string, CSSProperties> = {
     fontWeight: 900,
     letterSpacing: "0.1em",
   },
-
   panelTitle: {
     margin: "8px 0 22px",
     fontSize: "clamp(21px, 4.8vw, 30px)",
@@ -1050,14 +1023,12 @@ const styles: Record<string, CSSProperties> = {
     lineHeight: 1.3,
     overflowWrap: "break-word",
   },
-
   panelLead: {
     margin: "-8px 0 20px",
     color: "#cbd5e1",
     fontSize: "clamp(15px, 2.3vw, 17px)",
     lineHeight: 1.7,
   },
-
   kgiTop: {
     display: "flex",
     justifyContent: "space-between",
@@ -1066,7 +1037,6 @@ const styles: Record<string, CSSProperties> = {
     gap: "16px",
     flexWrap: "wrap",
   },
-
   bigValue: {
     margin: 0,
     fontSize: "clamp(38px, 10vw, 56px)",
@@ -1074,14 +1044,12 @@ const styles: Record<string, CSSProperties> = {
     color: "#6ee7b7",
     lineHeight: 1.05,
   },
-
   muted: {
     margin: "6px 0 0",
     color: "#cbd5e1",
     fontSize: "15px",
     lineHeight: 1.5,
   },
-
   badge: {
     padding: "10px 16px",
     borderRadius: "999px",
@@ -1093,7 +1061,6 @@ const styles: Record<string, CSSProperties> = {
     whiteSpace: "nowrap",
     flex: "0 0 auto",
   },
-
   progressBase: {
     height: "13px",
     background: "rgba(2,6,23,0.8)",
@@ -1101,19 +1068,16 @@ const styles: Record<string, CSSProperties> = {
     overflow: "hidden",
     border: "1px solid rgba(148,163,184,0.12)",
   },
-
   progressBar: {
     height: "100%",
     background: "linear-gradient(90deg, #10b981, #22d3ee, #a7f3d0)",
   },
-
   miniGrid: {
     display: "grid",
     gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 120px), 1fr))",
     gap: "12px",
     marginTop: "20px",
   },
-
   miniCard: {
     minWidth: 0,
     background: "rgba(2,6,23,0.44)",
@@ -1121,14 +1085,12 @@ const styles: Record<string, CSSProperties> = {
     borderRadius: "18px",
     padding: "16px",
   },
-
   miniCardLabel: {
     margin: 0,
     color: "#94a3b8",
     fontSize: "13px",
     fontWeight: 800,
   },
-
   miniCardValue: {
     display: "block",
     marginTop: "8px",
@@ -1137,7 +1099,6 @@ const styles: Record<string, CSSProperties> = {
     lineHeight: 1.25,
     overflowWrap: "break-word",
   },
-
   flowItem: {
     display: "grid",
     gridTemplateColumns: "42px minmax(0, 1fr)",
@@ -1146,7 +1107,6 @@ const styles: Record<string, CSSProperties> = {
     borderBottom: "1px solid rgba(148,163,184,0.12)",
     fontSize: "16px",
   },
-
   stepCircle: {
     width: "42px",
     height: "42px",
@@ -1160,25 +1120,21 @@ const styles: Record<string, CSSProperties> = {
     fontWeight: 900,
     fontSize: "13px",
   },
-
   flowTitle: {
     display: "block",
     color: "#f8fafc",
     lineHeight: 1.5,
   },
-
   flowText: {
     margin: "6px 0 0",
     color: "#cbd5e1",
     lineHeight: 1.7,
   },
-
   attentionList: {
     display: "grid",
     gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 280px), 1fr))",
     gap: "16px",
   },
-
   attentionCard: {
     minWidth: 0,
     textAlign: "left",
@@ -1190,12 +1146,10 @@ const styles: Record<string, CSSProperties> = {
     color: "#e5e7eb",
     boxSizing: "border-box",
   },
-
   attentionCardSelected: {
     border: "1px solid rgba(52,211,153,0.72)",
     boxShadow: "0 0 0 1px rgba(52,211,153,0.16)",
   },
-
   attentionHeader: {
     display: "flex",
     justifyContent: "space-between",
@@ -1204,14 +1158,12 @@ const styles: Record<string, CSSProperties> = {
     marginBottom: "18px",
     flexWrap: "wrap",
   },
-
   attentionRank: {
     margin: 0,
     color: "#34d399",
     fontSize: "13px",
     fontWeight: 900,
   },
-
   attentionDept: {
     margin: "4px 0 0",
     color: "#f8fafc",
@@ -1220,7 +1172,6 @@ const styles: Record<string, CSSProperties> = {
     lineHeight: 1.25,
     overflowWrap: "break-word",
   },
-
   attentionBadge: {
     padding: "9px 16px",
     borderRadius: "999px",
@@ -1229,32 +1180,27 @@ const styles: Record<string, CSSProperties> = {
     whiteSpace: "nowrap",
     flex: "0 0 auto",
   },
-
   attentionHigh: {
     background: "rgba(239,68,68,0.18)",
     border: "1px solid rgba(248,113,113,0.35)",
     color: "#fecaca",
   },
-
   attentionMiddle: {
     background: "rgba(245,158,11,0.18)",
     border: "1px solid rgba(251,191,36,0.35)",
     color: "#fde68a",
   },
-
   attentionLow: {
     background: "rgba(16,185,129,0.16)",
     border: "1px solid rgba(52,211,153,0.32)",
     color: "#bbf7d0",
   },
-
   attentionMetrics: {
     display: "grid",
     gridTemplateColumns: "repeat(auto-fit, minmax(84px, 1fr))",
     gap: "12px",
     marginBottom: "16px",
   },
-
   attentionMetricBox: {
     minWidth: 0,
     background: "rgba(15,23,42,0.72)",
@@ -1263,7 +1209,6 @@ const styles: Record<string, CSSProperties> = {
     padding: "14px",
     fontSize: "14px",
   },
-
   attentionReason: {
     margin: 0,
     color: "#cbd5e1",
@@ -1271,13 +1216,11 @@ const styles: Record<string, CSSProperties> = {
     lineHeight: 1.8,
     overflowWrap: "break-word",
   },
-
   recommendBox: {
     marginTop: "18px",
     paddingTop: "14px",
     borderTop: "1px solid rgba(148,163,184,0.12)",
   },
-
   recommendTitle: {
     margin: "0 0 10px",
     color: "#6ee7b7",
@@ -1285,13 +1228,11 @@ const styles: Record<string, CSSProperties> = {
     fontWeight: 900,
     letterSpacing: "0.06em",
   },
-
   recommendList: {
     display: "flex",
     gap: "8px",
     flexWrap: "wrap",
   },
-
   recommendTag: {
     padding: "8px 12px",
     borderRadius: "999px",
@@ -1301,7 +1242,6 @@ const styles: Record<string, CSSProperties> = {
     fontSize: "13px",
     fontWeight: 700,
   },
-
   filterBar: {
     display: "flex",
     justifyContent: "space-between",
@@ -1310,19 +1250,16 @@ const styles: Record<string, CSSProperties> = {
     marginBottom: "22px",
     flexWrap: "wrap",
   },
-
   filterLeft: {
     minWidth: 0,
     flex: "1 1 240px",
   },
-
   filterLabel: {
     margin: "0 0 8px",
     color: "#94a3b8",
     fontSize: "14px",
     fontWeight: 800,
   },
-
   select: {
     width: "min(260px, 100%)",
     maxWidth: "100%",
@@ -1335,7 +1272,6 @@ const styles: Record<string, CSSProperties> = {
     fontWeight: 800,
     boxSizing: "border-box",
   },
-
   filterNote: {
     margin: 0,
     color: "#cbd5e1",
@@ -1344,30 +1280,23 @@ const styles: Record<string, CSSProperties> = {
     flex: "1 1 240px",
     minWidth: 0,
   },
-
-  detailBlock: {
-    marginTop: "16px",
-  },
-
+  detailBlock: { marginTop: "16px" },
   detailLabel: {
     color: "#6ee7b7",
     fontSize: "12px",
     fontWeight: 900,
     letterSpacing: "0.08em",
   },
-
   detailGrid: {
     display: "grid",
     gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 240px), 1fr))",
     gap: "14px",
     marginTop: "14px",
   },
-
   aiInsightList: {
     display: "grid",
     gap: "16px",
   },
-
   aiInsightCard: {
     minWidth: 0,
     background: "rgba(2,6,23,0.44)",
@@ -1376,7 +1305,6 @@ const styles: Record<string, CSSProperties> = {
     padding: "clamp(18px, 3vw, 22px)",
     boxSizing: "border-box",
   },
-
   aiInsightTop: {
     display: "flex",
     justifyContent: "space-between",
@@ -1384,12 +1312,10 @@ const styles: Record<string, CSSProperties> = {
     alignItems: "flex-start",
     flexWrap: "wrap",
   },
-
   postName: {
     fontSize: "18px",
     lineHeight: 1.4,
   },
-
   aiInsightMeta: {
     display: "block",
     marginTop: "6px",
@@ -1397,14 +1323,12 @@ const styles: Record<string, CSSProperties> = {
     fontSize: "14px",
     lineHeight: 1.5,
   },
-
   aiBadgeGroup: {
     display: "flex",
     gap: "8px",
     flexWrap: "wrap",
     justifyContent: "flex-start",
   },
-
   aiBadge: {
     padding: "7px 12px",
     borderRadius: "999px",
@@ -1415,7 +1339,6 @@ const styles: Record<string, CSSProperties> = {
     fontWeight: 900,
     whiteSpace: "nowrap",
   },
-
   aiBehavior: {
     margin: "8px 0 0",
     color: "#e5e7eb",
@@ -1423,7 +1346,6 @@ const styles: Record<string, CSSProperties> = {
     fontSize: "17px",
     overflowWrap: "break-word",
   },
-
   aiCommentBox: {
     minWidth: 0,
     background: "rgba(16,185,129,0.08)",
@@ -1435,7 +1357,6 @@ const styles: Record<string, CSSProperties> = {
     lineHeight: 1.8,
     overflowWrap: "break-word",
   },
-
   managerCommentBox: {
     minWidth: 0,
     background: "rgba(59,130,246,0.08)",
@@ -1447,7 +1368,6 @@ const styles: Record<string, CSSProperties> = {
     lineHeight: 1.8,
     overflowWrap: "break-word",
   },
-
   aiLabel: {
     display: "inline-block",
     marginBottom: "6px",
@@ -1456,7 +1376,6 @@ const styles: Record<string, CSSProperties> = {
     fontWeight: 900,
     letterSpacing: "0.08em",
   },
-
   managerLabel: {
     display: "inline-block",
     marginBottom: "6px",
@@ -1465,7 +1384,6 @@ const styles: Record<string, CSSProperties> = {
     fontWeight: 900,
     letterSpacing: "0.08em",
   },
-
   biasFocusCard: {
     minWidth: 0,
     borderRadius: "24px",
@@ -1476,7 +1394,6 @@ const styles: Record<string, CSSProperties> = {
     boxShadow: "0 20px 70px rgba(0,0,0,0.28)",
     boxSizing: "border-box",
   },
-
   biasFocusHeader: {
     display: "flex",
     justifyContent: "space-between",
@@ -1485,7 +1402,6 @@ const styles: Record<string, CSSProperties> = {
     flexWrap: "wrap",
     marginBottom: "18px",
   },
-
   biasFocusLabel: {
     margin: 0,
     color: "#fbbf24",
@@ -1493,7 +1409,6 @@ const styles: Record<string, CSSProperties> = {
     fontWeight: 900,
     letterSpacing: "0.08em",
   },
-
   biasFocusDept: {
     margin: "8px 0 0",
     color: "#f8fafc",
@@ -1502,7 +1417,6 @@ const styles: Record<string, CSSProperties> = {
     lineHeight: 1.25,
     overflowWrap: "break-word",
   },
-
   biasFocusBadge: {
     padding: "10px 16px",
     borderRadius: "999px",
@@ -1514,7 +1428,6 @@ const styles: Record<string, CSSProperties> = {
     whiteSpace: "nowrap",
     flex: "0 0 auto",
   },
-
   biasFocusBody: {
     display: "grid",
     gridTemplateColumns: "minmax(150px, 0.9fr) minmax(0, 1.4fr)",
@@ -1522,7 +1435,6 @@ const styles: Record<string, CSSProperties> = {
     alignItems: "stretch",
     marginBottom: "18px",
   },
-
   biasMainMetric: {
     minWidth: 0,
     background: "rgba(2,6,23,0.52)",
@@ -1531,7 +1443,6 @@ const styles: Record<string, CSSProperties> = {
     padding: "18px",
     boxSizing: "border-box",
   },
-
   biasMetricLabel: {
     display: "block",
     color: "#cbd5e1",
@@ -1539,7 +1450,6 @@ const styles: Record<string, CSSProperties> = {
     fontWeight: 900,
     marginBottom: "10px",
   },
-
   biasFocusDiff: {
     display: "block",
     color: "#34d399",
@@ -1547,13 +1457,11 @@ const styles: Record<string, CSSProperties> = {
     fontWeight: 900,
     lineHeight: 1.1,
   },
-
   biasSubMetrics: {
     display: "grid",
     gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 120px), 1fr))",
     gap: "12px",
   },
-
   biasSubMetricBox: {
     minWidth: 0,
     background: "rgba(15,23,42,0.58)",
@@ -1565,7 +1473,6 @@ const styles: Record<string, CSSProperties> = {
     fontWeight: 800,
     boxSizing: "border-box",
   },
-
   biasFocusDetail: {
     margin: "0 0 16px",
     color: "#e2e8f0",
@@ -1573,7 +1480,6 @@ const styles: Record<string, CSSProperties> = {
     fontSize: "15px",
     overflowWrap: "break-word",
   },
-
   biasPoCNote: {
     padding: "14px 16px",
     borderRadius: "18px",
@@ -1584,7 +1490,6 @@ const styles: Record<string, CSSProperties> = {
     lineHeight: 1.8,
     overflowWrap: "break-word",
   },
-
   chartBox: {
     width: "100%",
     height: "320px",
@@ -1596,14 +1501,12 @@ const styles: Record<string, CSSProperties> = {
     overflow: "hidden",
     boxSizing: "border-box",
   },
-
   tooltip: {
     background: "#020617",
     border: "1px solid rgba(52,211,153,0.28)",
     borderRadius: "12px",
     color: "#e5e7eb",
   },
-
   emptyBox: {
     padding: "20px",
     borderRadius: "18px",

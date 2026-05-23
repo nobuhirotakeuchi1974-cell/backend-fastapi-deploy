@@ -1,16 +1,18 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import "./globals.css";
-
-const ROLE: "manager" | "employee" = "manager";
 
 export default function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const isEmployee = ROLE === "employee";
+  const pathname = usePathname();
+
+  const hideHeader =
+    pathname === "/login" || pathname === "/employee";
 
   return (
     <html lang="ja">
@@ -23,99 +25,95 @@ export default function RootLayout({
           overflowX: "hidden",
         }}
       >
-        <header
-          style={{
-            position: "sticky",
-            top: 0,
-            zIndex: 999,
-            borderBottom: "1px solid rgba(255,255,255,0.10)",
-            background: "rgba(8,17,32,0.95)",
-            backdropFilter: "blur(18px)",
-            boxShadow: "0 10px 40px rgba(0,0,0,0.28)",
-          }}
-        >
-          <div
+        {!hideHeader && (
+          <header
             style={{
-              maxWidth: 1320,
-              margin: "0 auto",
-              padding: "14px 18px",
-              display: "flex",
-              flexWrap: "wrap",
-              alignItems: "center",
-              justifyContent: "space-between",
-              gap: 14,
+              position: "sticky",
+              top: 0,
+              zIndex: 999,
+              borderBottom: "1px solid rgba(255,255,255,0.10)",
+              background: "rgba(8,17,32,0.95)",
+              backdropFilter: "blur(18px)",
+              boxShadow: "0 10px 40px rgba(0,0,0,0.28)",
             }}
           >
-            <Link
-              href="/"
+            <div
               style={{
+                maxWidth: 1320,
+                margin: "0 auto",
+                padding: "14px 18px",
                 display: "flex",
+                flexWrap: "wrap",
                 alignItems: "center",
-                gap: 12,
-                textDecoration: "none",
-                color: "#ffffff",
-                minWidth: 0,
+                justifyContent: "space-between",
+                gap: 14,
               }}
             >
-              <div
+              <Link
+                href="/"
                 style={{
-                  width: 44,
-                  height: 44,
-                  borderRadius: 16,
                   display: "flex",
                   alignItems: "center",
-                  justifyContent: "center",
-                  border: "1px solid rgba(34,211,238,0.35)",
-                  background:
-                    "linear-gradient(135deg, rgba(34,211,238,0.24), rgba(16,185,129,0.12))",
-                  boxShadow: "0 0 24px rgba(34,211,238,0.14)",
-                  flexShrink: 0,
+                  gap: 12,
+                  textDecoration: "none",
+                  color: "#ffffff",
+                  minWidth: 0,
                 }}
               >
                 <div
                   style={{
-                    width: 15,
-                    height: 15,
-                    borderRadius: 5,
-                    background: "#67e8f9",
-                    boxShadow: "0 0 14px rgba(34,211,238,0.95)",
+                    width: 44,
+                    height: 44,
+                    borderRadius: 16,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    border: "1px solid rgba(34,211,238,0.35)",
+                    background:
+                      "linear-gradient(135deg, rgba(34,211,238,0.24), rgba(16,185,129,0.12))",
+                    boxShadow: "0 0 24px rgba(34,211,238,0.14)",
+                    flexShrink: 0,
                   }}
-                />
-              </div>
+                >
+                  <div
+                    style={{
+                      width: 15,
+                      height: 15,
+                      borderRadius: 5,
+                      background: "#67e8f9",
+                      boxShadow: "0 0 14px rgba(34,211,238,0.95)",
+                    }}
+                  />
+                </div>
 
-              <div
+                <div
+                  style={{
+                    color: "#ffffff",
+                    fontWeight: 900,
+                    fontSize: 17,
+                    letterSpacing: 0.2,
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  Human Capital OS
+                </div>
+              </Link>
+
+              <nav
                 style={{
-                  color: "#ffffff",
-                  fontWeight: 900,
-                  fontSize: 17,
-                  letterSpacing: 0.2,
-                  whiteSpace: "nowrap",
+                  display: "flex",
+                  flexWrap: "wrap",
+                  alignItems: "center",
+                  gap: 10,
                 }}
               >
-                Human Capital OS
-              </div>
-            </Link>
-
-            <nav
-              style={{
-                display: "flex",
-                flexWrap: "wrap",
-                alignItems: "center",
-                gap: 10,
-              }}
-            >
-              {isEmployee ? (
-                <NavItem href="/employee" label="社員入力" />
-              ) : (
-                <>
-                  <NavItem href="/" label="トップ" />
-                  <NavItem href="/manager" label="上司評価" />
-                  <NavItem href="/dashboard" label="ダッシュボード" />
-                </>
-              )}
-            </nav>
-          </div>
-        </header>
+                <NavItem href="/" label="トップ" />
+                <NavItem href="/manager" label="上司評価" />
+                <NavItem href="/dashboard" label="ダッシュボード" />
+              </nav>
+            </div>
+          </header>
+        )}
 
         {children}
       </body>

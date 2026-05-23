@@ -61,7 +61,10 @@ export default function LoginPage() {
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-[#071326] px-5 py-10 text-white">
-      <section className="w-full max-w-md rounded-[28px] border border-emerald-400/20 bg-[#0b1528] p-7 shadow-2xl shadow-emerald-500/10">
+      <section
+        className="w-full rounded-[28px] border border-emerald-400/20 bg-[#0b1528] p-7 shadow-2xl shadow-emerald-500/10"
+        style={{ maxWidth: 520 }}
+     >
         <div className="mb-8">
           <p className="mb-3 inline-flex rounded-full border border-emerald-400/30 bg-emerald-400/10 px-4 py-2 text-xs font-black tracking-wider text-emerald-300">
             HUMAN CAPITAL OS
@@ -124,9 +127,7 @@ export default function LoginPage() {
             {loading ? "ログイン中..." : "ログインする"}
           </button>
 
-          <p className="text-center text-xs font-bold text-slate-500">
-            demo: admin / password123
-          </p>
+          
         </div>
       </section>
     </main>
