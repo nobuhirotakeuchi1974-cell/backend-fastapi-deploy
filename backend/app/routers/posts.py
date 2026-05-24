@@ -21,6 +21,24 @@ POINT_VALUE = 100000
 HOURLY_VALUE = 5000
 
 
+def is_broken_text(value: str | None) -> bool:
+    if value is None:
+        return False
+    return "?" in str(value)
+
+
+def is_broken_post(post: Post) -> bool:
+    return (
+        is_broken_text(post.employee_name)
+        or is_broken_text(post.department)
+        or is_broken_text(post.behavior)
+    )
+
+
+def clean_posts(posts: list[Post]) -> list[Post]:
+    return [p for p in posts if not is_broken_post(p)]
+
+
 def estimate_human_capital(payload: dict):
     behavior = (payload.get("behavior") or "").lower()
     category = payload.get("category") or ""
@@ -37,90 +55,68 @@ def estimate_human_capital(payload: dict):
         organization_impact = "新施策創出"
         business_impact = "生産性向上・財務効果"
         confidence_score = 82
-        ai_comment_parts.append(
-            "挑戦行動として、新施策創出や生産性向上への貢献が期待されます。"
-        )
+        ai_comment_parts.append("挑戦行動として、新施策創出や生産性向上への貢献が期待されます。")
 
     elif category == "improvement":
         human_action = "改善提案"
         organization_impact = "業務標準化"
         business_impact = "時間削減・品質改善"
         confidence_score = 86
-        ai_comment_parts.append(
-            "改善提案として、業務標準化や時間削減への貢献が期待されます。"
-        )
+        ai_comment_parts.append("改善提案として、業務標準化や時間削減への貢献が期待されます。")
 
     elif category == "support":
         human_action = "支援・連携"
         organization_impact = "部門連携強化"
         business_impact = "手戻り削減・対応品質向上"
         confidence_score = 83
-        ai_comment_parts.append(
-            "支援行動として、部門連携強化や対応品質向上への効果が期待されます。"
-        )
+        ai_comment_parts.append("支援行動として、部門連携強化や対応品質向上への効果が期待されます。")
 
     elif category == "learning":
         human_action = "学習・共有"
         organization_impact = "教育効率化"
         business_impact = "育成時間短縮・知識共有"
         confidence_score = 80
-        ai_comment_parts.append(
-            "学習行動として、教育効率化や知識共有への貢献が期待されます。"
-        )
+        ai_comment_parts.append("学習行動として、教育効率化や知識共有への貢献が期待されます。")
 
     if any(word in behavior for word in ["faq", "マニュアル", "手順", "標準化"]):
         organization_impact = "属人化解消"
         business_impact = "問い合わせ対応の標準化"
         confidence_score += 5
-        ai_comment_parts.append(
-            "FAQ・手順化により、属人化解消と対応標準化への効果が見込まれます。"
-        )
+        ai_comment_parts.append("FAQ・手順化により、属人化解消と対応標準化への効果が見込まれます。")
 
     if any(word in behavior for word in ["新人", "教育", "研修", "ojt", "育成"]):
         organization_impact = "教育効率化"
         business_impact = "育成時間短縮"
         confidence_score += 4
-        ai_comment_parts.append(
-            "教育・育成に関する行動として、育成時間短縮と品質安定化が期待されます。"
-        )
+        ai_comment_parts.append("教育・育成に関する行動として、育成時間短縮と品質安定化が期待されます。")
 
     if any(word in behavior for word in ["共有", "ナレッジ", "横展開", "連携", "展開"]):
         organization_impact = "部門連携強化"
         business_impact = "手戻り削減"
         confidence_score += 4
-        ai_comment_parts.append(
-            "ナレッジ共有により、部門連携強化と手戻り削減への効果が見込まれます。"
-        )
+        ai_comment_parts.append("ナレッジ共有により、部門連携強化と手戻り削減への効果が見込まれます。")
 
     if any(word in behavior for word in ["ミス", "再発", "チェック", "差戻し", "確認"]):
         organization_impact = "品質安定"
         business_impact = "ミス・差戻し削減"
         confidence_score += 4
-        ai_comment_parts.append(
-            "再発防止・チェック強化により、品質安定と差戻し削減への効果が期待されます。"
-        )
+        ai_comment_parts.append("再発防止・チェック強化により、品質安定と差戻し削減への効果が期待されます。")
 
     if any(word in behavior for word in ["時間", "短縮", "効率", "効率化", "自動化"]):
         business_impact = "時間削減・生産性向上"
         confidence_score += 4
-        ai_comment_parts.append(
-            "作業時間の短縮や効率化により、生産性向上への貢献が期待されます。"
-        )
+        ai_comment_parts.append("作業時間の短縮や効率化により、生産性向上への貢献が期待されます。")
 
     if any(word in behavior for word in ["顧客", "問い合わせ", "対応", "品質", "満足"]):
         organization_impact = "対応品質向上"
         business_impact = "顧客対応品質の向上"
         confidence_score += 3
-        ai_comment_parts.append(
-            "顧客対応や問い合わせ品質の改善により、サービス品質向上への効果が見込まれます。"
-        )
+        ai_comment_parts.append("顧客対応や問い合わせ品質の改善により、サービス品質向上への効果が見込まれます。")
 
     if any(word in behavior for word in ["提案", "改善", "課題", "気づき", "工夫"]):
         human_action = "改善提案"
         confidence_score += 3
-        ai_comment_parts.append(
-            "現場課題の発見と改善提案として、継続的な業務改善サイクルへの貢献が期待されます。"
-        )
+        ai_comment_parts.append("現場課題の発見と改善提案として、継続的な業務改善サイクルへの貢献が期待されます。")
 
     confidence_score = min(confidence_score, 95)
 
@@ -177,6 +173,7 @@ def serialize_post(post: Post):
 @router.get("")
 def get_posts(db: Session = Depends(get_db)):
     posts = db.query(Post).order_by(Post.created_at.desc()).all()
+    posts = clean_posts(posts)
     return [serialize_post(p) for p in posts]
 
 
@@ -289,6 +286,7 @@ def get_summary(
     token: dict = Depends(verify_token),
 ):
     posts = db.query(Post).all()
+    posts = clean_posts(posts)
 
     total = len(posts)
     pending_posts = [p for p in posts if p.status == "pending"]
@@ -468,6 +466,7 @@ def get_roi_trend(
     token: dict = Depends(verify_token),
 ):
     posts = db.query(Post).filter(Post.status == "approved").all()
+    posts = clean_posts(posts)
 
     monthly = {}
 
