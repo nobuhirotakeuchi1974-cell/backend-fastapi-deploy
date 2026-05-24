@@ -1,4 +1,6 @@
+from datetime import datetime
 from typing import Literal, Optional
+
 from pydantic import BaseModel, Field
 
 
@@ -35,6 +37,10 @@ class PostCreate(BaseModel):
         le=100,
         description="自己評価ポイント 0〜100",
     )
+    created_at: Optional[datetime] = Field(
+        default=None,
+        description="デモ投入用の投稿日時。未指定の場合はサーバー側で現在時刻を設定。",
+    )
 
 
 class ReviewRequest(BaseModel):
@@ -53,7 +59,8 @@ class ReviewRequest(BaseModel):
         max_length=500,
         description="上司コメント 最大500文字",
     )
-    
+
+
 class LoginRequest(BaseModel):
     username: str = Field(
         ...,

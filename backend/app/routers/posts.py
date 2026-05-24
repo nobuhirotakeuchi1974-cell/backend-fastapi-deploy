@@ -192,6 +192,7 @@ def create_post(
         behavior=payload_dict["behavior"],
         category=payload_dict["category"],
         self_points=payload_dict["self_points"],
+        created_at=payload_dict.get("created_at") or datetime.utcnow(),
         manager_points=None,
         manager_comment=None,
         status="pending",
