@@ -196,7 +196,10 @@ export default function ManagerPage() {
   }, []);
 
   const approvePost = async (id: string) => {
-    const points = selectedPoints[id] ?? 10;
+  const targetPost = posts.find((post) => post.id === id);
+  const points = normalizeRfpPoint(
+    selectedPoints[id] ?? targetPost?.roi_points ?? 1
+  );
     const comment =
       comments[id] ||
       "AI分析コメント・推定ROI・信頼度を確認し、上司評価により人的資本価値として確定しました。";

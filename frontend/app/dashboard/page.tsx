@@ -591,8 +591,8 @@ export default function DashboardPage() {
 
                       <div style={styles.aiBadgeGroup}>
                         <span style={styles.aiBadge}>
-                          {rfpLevelLabel(post.manager_points ?? post.roi_points)}
-                        </span>
+  AI推奨 {rfpLevelLabel(post.roi_points)}
+</span>
 
                         <span
                           style={{
