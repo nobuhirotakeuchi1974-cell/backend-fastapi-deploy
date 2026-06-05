@@ -45,11 +45,15 @@ logging.getLogger("uvicorn.error").addFilter(RequestIdFilter())
 app = FastAPI(title="Human Capital OS")
 
 
-allow_origins=[
+allow_origins = [
     "http://localhost:3000",
     "http://127.0.0.1:3000",
     "https://tech0-gen-11-step3-2-node-62.azurewebsites.net",
 ]
+
+vercel_origin = os.getenv("FRONTEND_ORIGIN")
+if vercel_origin:
+    allow_origins.append(vercel_origin)
 
 
 app.add_middleware(
