@@ -8,11 +8,12 @@ from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from sqlalchemy import inspect, text
 
 load_dotenv()
 
 from app.auth import create_access_token
-from app.database import Base, engine
+from app.database import Base, engine, SessionLocal
 from app.routers import analytics, posts
 from app.schemas import LoginRequest
 
@@ -183,6 +184,41 @@ app.include_router(
     prefix="/api/analytics",
     tags=["analytics"],
 )
+
+
+@app.get("/debug/db-structure")
+def debug_db_structure():
+    db = SessionLocal()
+
+    try:
+        inspector = inspect(db.bind)
+
+        result = {}
+
+        for table_name in inspector.get_table_names():
+            columns = inspector.get_columns(table_name)
+
+            count = db.execute(
+                text(f"SELECT COUNT(*) FROM {table_name}")
+            ).scalar()
+
+            result[table_name] = {
+                "count": count,
+                "columns": [
+                    {
+                        "name": c["name"],
+                        "type": str(c["type"]),
+                        "nullable": c["nullable"],
+                        "primary_key": c["primary_key"],
+                    }
+                    for c in columns
+                ],
+            }
+
+        return result
+
+    finally:
+        db.close()
 
 
 @app.get("/health")
