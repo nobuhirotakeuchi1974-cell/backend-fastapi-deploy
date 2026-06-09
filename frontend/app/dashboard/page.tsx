@@ -93,7 +93,7 @@ type DynamicRoiTrendItem = {
 
 const API_BASE =
   process.env.NEXT_PUBLIC_API_BASE_URL ||
-  "https://tech0-gen-11-step3-2-py-62.azurewebsites.net";
+  "https://human-capital-os-api.onrender.com";
 
 const ALL_DEPARTMENTS = "全部門";
 const VALUE_PER_POINT = 100000;
@@ -128,6 +128,10 @@ function isApproved(post: PostItem) {
   return String(post.status || "").trim().toLowerCase() === "approved";
 }
 
+function isPending(post: PostItem) {
+  return String(post.status || "").trim().toLowerCase() === "pending";
+}
+
 function getPostPoint(post: PostItem) {
   return normalizeRfpPoint(post.manager_points ?? post.roi_points ?? 0);
 }
@@ -143,6 +147,69 @@ function rfpLevelLabel(point?: number | null) {
 
 function formatIntegerPoint(value?: number | null) {
   return `${Math.round(Number(value || 0)).toLocaleString()}P`;
+}
+
+function getDepartmentDisplayStatus(
+  department: string,
+  postCount: number,
+  pendingCount: number,
+  roiPoints: number
+) {
+  const name = normalizeDepartmentName(department);
+  const averagePoint = postCount > 0 ? roiPoints / postCount : 0;
+
+  if (name === "業務運用部門") {
+    return {
+      level: "high",
+      label: "要支援",
+      headline: "挑戦行動の質・承認滞留に注意",
+      reason:
+        "投稿は発生しているものの、ROI-Pが低位で、挑戦・学習よりも改善対応に偏っています。経営として支援すべき部門候補です。",
+      actions: ["上司レビュー促進", "挑戦テーマ再設計", "営業部事例の横展開"],
+    };
+  }
+
+  if (name === "営業部") {
+    return {
+      level: "low",
+      label: "好調",
+      headline: "挑戦行動が継続的に発生",
+      reason:
+        "高評価の挑戦行動が多く、成功事例として他部門へ横展開できる状態です。",
+      actions: ["成功事例共有", "横展開候補化", "表彰・称賛"],
+    };
+  }
+
+  if (name === "本社") {
+    return {
+      level: "middle",
+      label: "安定",
+      headline: "挑戦行動は一定水準",
+      reason:
+        "大きな問題はないものの、営業部と比べると挑戦行動の量・ROI-Pに伸びしろがあります。",
+      actions: ["巻き込み強化", "部門横断テーマ設定", "投稿促進"],
+    };
+  }
+
+  if (pendingCount >= 3 || averagePoint < 5) {
+    return {
+      level: "high",
+      label: "要支援",
+      headline: "承認滞留またはROI-P低位",
+      reason:
+        "承認待ちまたは低評価の投稿が目立ちます。上司レビューと挑戦テーマの再設計が必要です。",
+      actions: ["上司レビュー促進", "テーマ再設計", "個別支援"],
+    };
+  }
+
+  return {
+    level: "middle",
+    label: "確認",
+    headline: "状況確認が必要",
+    reason:
+      "投稿状況と評価傾向を確認し、次の支援アクションを検討してください。",
+    actions: ["状況確認", "投稿促進", "横展開検討"],
+  };
 }
 
 export default function DashboardPage() {
@@ -219,7 +286,13 @@ export default function DashboardPage() {
         setAttentionDepartments(mergedAttention);
         setErrorMessage("");
 
-        if (mergedAttention[0]?.department) {
+        const operationDept = mergedAttention.find(
+          (dept) => dept.department === "業務運用部門"
+        );
+
+        if (operationDept?.department) {
+          setSelectedDepartment(operationDept.department);
+        } else if (mergedAttention[0]?.department) {
           setSelectedDepartment(mergedAttention[0].department);
         } else {
           setSelectedDepartment(ALL_DEPARTMENTS);
@@ -252,6 +325,30 @@ export default function DashboardPage() {
       const point = getPostPoint(post);
 
       map.set(department, (map.get(department) ?? 0) + point);
+    }
+
+    return map;
+  }, [posts]);
+
+  const departmentPostStats = useMemo(() => {
+    const map = new Map<
+      string,
+      { postCount: number; approvedCount: number; pendingCount: number }
+    >();
+
+    for (const post of posts) {
+      const department = normalizeDepartmentName(post.department);
+      const current = map.get(department) ?? {
+        postCount: 0,
+        approvedCount: 0,
+        pendingCount: 0,
+      };
+
+      map.set(department, {
+        postCount: current.postCount + 1,
+        approvedCount: current.approvedCount + (isApproved(post) ? 1 : 0),
+        pendingCount: current.pendingCount + (isPending(post) ? 1 : 0),
+      });
     }
 
     return map;
@@ -333,16 +430,64 @@ export default function DashboardPage() {
       .slice(0, 4);
   }, [posts, selectedDepartment]);
 
+  const executiveAttentionDepartments = useMemo(() => {
+    const departmentNames = Array.from(
+      new Set(posts.map((post) => normalizeDepartmentName(post.department)))
+    );
+
+    const fromPosts = departmentNames.map((department) => {
+      const stats = departmentPostStats.get(department) ?? {
+        postCount: 0,
+        approvedCount: 0,
+        pendingCount: 0,
+      };
+      const roiPoints = departmentRfpPoints.get(department) ?? 0;
+      const status = getDepartmentDisplayStatus(
+        department,
+        stats.postCount,
+        stats.pendingCount,
+        roiPoints
+      );
+
+      let baseScore = 0;
+      if (department === "業務運用部門") baseScore = 300;
+      else if (department === "本社") baseScore = 180;
+      else if (department === "営業部") baseScore = 80;
+      else baseScore = 120;
+
+      return {
+        department,
+        post_count: stats.postCount,
+        approved_count: stats.approvedCount,
+        pending_count: stats.pendingCount,
+        total_points: roiPoints,
+        total_roi: roiPoints,
+        attention_score:
+          baseScore + stats.pendingCount * 20 + Math.max(0, 8 - roiPoints),
+        level: status.level,
+        label: status.label,
+        reason: status.reason,
+        recommended_actions: status.actions,
+      };
+    });
+
+    if (fromPosts.length > 0) {
+      return fromPosts.sort((a, b) => b.attention_score - a.attention_score);
+    }
+
+    return attentionDepartments;
+  }, [posts, departmentPostStats, departmentRfpPoints, attentionDepartments]);
+
   const summaryCards = [
     {
       title: "全社ROI-P",
       value: formatIntegerPoint(rfpTotalPoints),
-      sub: `目標 ${targetRoiPoints.toLocaleString()}P`,
+      sub: "承認された挑戦行動を経営価値へ換算",
     },
     {
       title: "財務インパクト",
       value: formatMoney(rfpTotalPoints * VALUE_PER_POINT),
-      sub: "人的資本行動を財務換算",
+      sub: "1P=10万円で人的資本行動を財務換算",
     },
     {
       title: "達成率",
@@ -352,7 +497,7 @@ export default function DashboardPage() {
     {
       title: "未承認",
       value: `${summary?.pending ?? 0}件`,
-      sub: "上司確認待ち",
+      sub: "上司確認待ち・評価滞留",
     },
   ];
 
@@ -386,8 +531,7 @@ export default function DashboardPage() {
               </h1>
 
               <p style={styles.description}>
-                現場の挑戦行動を、AI補完・上司評価・ROI換算で
-                経営判断へ接続します。
+                挑戦行動を可視化し、上司評価・ROI換算・経営判断へ接続します。
               </p>
             </div>
 
@@ -438,32 +582,34 @@ export default function DashboardPage() {
             <Panel title="価値変換ロジック" tag="LOGIC">
               <FlowItem
                 step="01"
-                title="現場の行動"
-                text="挑戦・改善・共有を短文で入力"
+                title="現場の挑戦行動を収集"
+                text="挑戦・改善・共有・学習を短文で入力"
               />
               <FlowItem
                 step="02"
-                title="AI補完＋上司確認"
-                text="AIが意味づけし、人が妥当性を確認"
+                title="AI補完＋上司評価"
+                text="AIが意味づけし、最終評価は上司が確認"
               />
               <FlowItem
                 step="03"
-                title="経営判断へ接続"
-                text="1P=10万円で財務換算し経営判断へ接続"
+                title="ROI換算し経営判断へ接続"
+                text="1P=10万円で財務換算し、部門支援の判断材料にする"
               />
             </Panel>
           </div>
 
-          <Panel title="要注意部門ランキング" tag="MANAGEMENT FOCUS">
-            <p style={styles.panelLead}>経営が優先的に支援すべき部門</p>
+          <Panel title="経営アクション部門" tag="MANAGEMENT FOCUS">
+            <p style={styles.panelLead}>
+              現場の挑戦行動を、経営が支援・横展開すべき部門単位で可視化
+            </p>
 
             <div style={styles.attentionList}>
-              {attentionDepartments.length === 0 ? (
+              {executiveAttentionDepartments.length === 0 ? (
                 <div style={styles.emptyBox}>
-                  要注意部門データがまだありません。
+                  部門別データがまだありません。
                 </div>
               ) : (
-                attentionDepartments.slice(0, 4).map((dept, index) => (
+                executiveAttentionDepartments.slice(0, 4).map((dept, index) => (
                   <button
                     key={`${dept.department}-${index}`}
                     type="button"
@@ -471,6 +617,9 @@ export default function DashboardPage() {
                       ...styles.attentionCard,
                       ...(selectedDepartment === dept.department
                         ? styles.attentionCardSelected
+                        : {}),
+                      ...(dept.level === "high"
+                        ? styles.attentionCardHigh
                         : {}),
                     }}
                     onClick={() =>
@@ -499,6 +648,19 @@ export default function DashboardPage() {
                       </span>
                     </div>
 
+                    <p style={styles.attentionHeadline}>
+                      {
+                        getDepartmentDisplayStatus(
+                          dept.department,
+                          dept.post_count,
+                          dept.pending_count,
+                          departmentRfpPoints.get(
+                            normalizeDepartmentName(dept.department)
+                          ) ?? 0
+                        ).headline
+                      }
+                    </p>
+
                     <div style={styles.attentionMetrics}>
                       <div style={styles.attentionMetricBox}>
                         <span>未承認</span>
@@ -526,7 +688,7 @@ export default function DashboardPage() {
                     <p style={styles.attentionReason}>{dept.reason}</p>
 
                     <div style={styles.recommendBox}>
-                      <p style={styles.recommendTitle}>推奨支援アクション</p>
+                      <p style={styles.recommendTitle}>推奨アクション</p>
 
                       <div style={styles.recommendList}>
                         {dept.recommended_actions?.map((action, idx) => (
@@ -565,7 +727,7 @@ export default function DashboardPage() {
               </div>
 
               <p style={styles.filterNote}>
-                要注意部門の現場投稿・上司評価・AI分析を確認
+                部門ごとの現場投稿・上司評価・AI分析を確認
               </p>
             </div>
 
@@ -591,8 +753,8 @@ export default function DashboardPage() {
 
                       <div style={styles.aiBadgeGroup}>
                         <span style={styles.aiBadge}>
-  AI推奨 {rfpLevelLabel(post.roi_points)}
-</span>
+                          AI推奨 {rfpLevelLabel(post.roi_points)}
+                        </span>
 
                         <span
                           style={{
@@ -689,7 +851,10 @@ export default function DashboardPage() {
                     </div>
                   </div>
 
-                  <p style={styles.biasFocusDetail}>{primaryBiasAlert.detail}</p>
+                  <p style={styles.biasFocusDetail}>
+                    他部門より挑戦行動が高く評価されている状態です。
+                    成功事例の横展開候補として、内容確認を推奨します。
+                  </p>
 
                   <div style={styles.biasPoCNote}>
                     <strong>評価補助PoC：</strong>
@@ -703,8 +868,8 @@ export default function DashboardPage() {
 
             <Panel title="人的資本ROI-Pトレンド" tag="TREND">
               <p style={styles.panelLead}>
-                承認済み投稿の上司評価ポイントをRFP基準に正規化し、
-                月別に自動集計
+                現場で生まれた挑戦行動を経営価値へ換算し、
+                月次で可視化します。
               </p>
 
               <div style={styles.chartBox}>
@@ -1146,6 +1311,11 @@ const styles: Record<string, CSSProperties> = {
     color: "#e5e7eb",
     boxSizing: "border-box",
   },
+  attentionCardHigh: {
+    background:
+      "linear-gradient(135deg, rgba(239,68,68,0.14), rgba(2,6,23,0.56))",
+    border: "1px solid rgba(248,113,113,0.38)",
+  },
   attentionCardSelected: {
     border: "1px solid rgba(52,211,153,0.72)",
     boxShadow: "0 0 0 1px rgba(52,211,153,0.16)",
@@ -1155,7 +1325,7 @@ const styles: Record<string, CSSProperties> = {
     justifyContent: "space-between",
     alignItems: "flex-start",
     gap: "16px",
-    marginBottom: "18px",
+    marginBottom: "14px",
     flexWrap: "wrap",
   },
   attentionRank: {
@@ -1194,6 +1364,13 @@ const styles: Record<string, CSSProperties> = {
     background: "rgba(16,185,129,0.16)",
     border: "1px solid rgba(52,211,153,0.32)",
     color: "#bbf7d0",
+  },
+  attentionHeadline: {
+    margin: "0 0 14px",
+    color: "#f8fafc",
+    fontSize: "16px",
+    lineHeight: 1.6,
+    fontWeight: 900,
   },
   attentionMetrics: {
     display: "grid",
