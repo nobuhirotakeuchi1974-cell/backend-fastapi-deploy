@@ -354,6 +354,71 @@ export default function DashboardPage() {
     return map;
   }, [posts]);
 
+  const departmentExecutiveStats = useMemo(() => {
+    const map = new Map<
+      string,
+      {
+        hoursSaved: number;
+        estimatedValue: number;
+        averageConfidence: number;
+      }
+    >();
+
+    if (summary?.departments) {
+      Object.entries(summary.departments).forEach(([rawDepartment, value]) => {
+        const department = normalizeDepartmentName(rawDepartment);
+
+        map.set(department, {
+          hoursSaved: Number(value.estimated_hours_saved || 0),
+          estimatedValue: Number(value.estimated_value || 0),
+          averageConfidence: Number(value.average_confidence || 0),
+        });
+      });
+    }
+
+    const confidenceMap = new Map<
+      string,
+      { confidenceTotal: number; confidenceCount: number }
+    >();
+
+    posts.forEach((post) => {
+      const department = normalizeDepartmentName(post.department);
+      const current = confidenceMap.get(department) ?? {
+        confidenceTotal: 0,
+        confidenceCount: 0,
+      };
+
+      confidenceMap.set(department, {
+        confidenceTotal:
+          current.confidenceTotal + Number(post.confidence_score || 0),
+        confidenceCount: current.confidenceCount + 1,
+      });
+    });
+
+    confidenceMap.forEach((value, department) => {
+      const current = map.get(department) ?? {
+        hoursSaved: 0,
+        estimatedValue: 0,
+        averageConfidence: 0,
+      };
+
+      const fallbackConfidence =
+        value.confidenceCount > 0
+          ? value.confidenceTotal / value.confidenceCount
+          : 0;
+
+      map.set(department, {
+        ...current,
+        averageConfidence:
+          current.averageConfidence > 0
+            ? current.averageConfidence
+            : fallbackConfidence,
+      });
+    });
+
+    return map;
+  }, [posts, summary]);
+
   const rfpTotalPoints = useMemo(() => {
     return Array.from(departmentRfpPoints.values()).reduce(
       (sum, point) => sum + point,
@@ -485,9 +550,9 @@ export default function DashboardPage() {
       sub: "承認された挑戦行動を経営価値へ換算",
     },
     {
-      title: "財務インパクト",
+      title: "推定財務インパクト",
       value: formatMoney(rfpTotalPoints * VALUE_PER_POINT),
-      sub: "1P=10万円で人的資本行動を財務換算",
+      sub: "挑戦行動による削減時間・品質改善効果を金額換算",
     },
     {
       title: "達成率",
@@ -593,7 +658,7 @@ export default function DashboardPage() {
               <FlowItem
                 step="03"
                 title="ROI換算し経営判断へ接続"
-                text="1P=10万円で財務換算し、部門支援の判断材料にする"
+                text="削減時間・品質改善効果を推定し、部門支援の判断材料にする"
               />
             </Panel>
           </div>
@@ -609,97 +674,114 @@ export default function DashboardPage() {
                   部門別データがまだありません。
                 </div>
               ) : (
-                executiveAttentionDepartments.slice(0, 4).map((dept, index) => (
-                  <button
-                    key={`${dept.department}-${index}`}
-                    type="button"
-                    style={{
-                      ...styles.attentionCard,
-                      ...(selectedDepartment === dept.department
-                        ? styles.attentionCardSelected
-                        : {}),
-                      ...(dept.level === "high"
-                        ? styles.attentionCardHigh
-                        : {}),
-                    }}
-                    onClick={() =>
-                      setSelectedDepartment(
-                        normalizeDepartmentName(dept.department)
-                      )
-                    }
-                  >
-                    <div style={styles.attentionHeader}>
-                      <div style={styles.flexItemMin}>
-                        <p style={styles.attentionRank}>#{index + 1}</p>
-                        <h3 style={styles.attentionDept}>{dept.department}</h3>
+                executiveAttentionDepartments.slice(0, 4).map((dept, index) => {
+                  const departmentName = normalizeDepartmentName(
+                    dept.department
+                  );
+                  const executiveStats =
+                    departmentExecutiveStats.get(departmentName);
+                  const departmentRoiPoints =
+                    departmentRfpPoints.get(departmentName) ?? 0;
+
+                  return (
+                    <button
+                      key={`${dept.department}-${index}`}
+                      type="button"
+                      style={{
+                        ...styles.attentionCard,
+                        ...(selectedDepartment === dept.department
+                          ? styles.attentionCardSelected
+                          : {}),
+                        ...(dept.level === "high"
+                          ? styles.attentionCardHigh
+                          : {}),
+                      }}
+                      onClick={() => setSelectedDepartment(departmentName)}
+                    >
+                      <div style={styles.attentionHeader}>
+                        <div style={styles.flexItemMin}>
+                          <p style={styles.attentionRank}>#{index + 1}</p>
+                          <h3 style={styles.attentionDept}>{dept.department}</h3>
+                        </div>
+
+                        <span
+                          style={{
+                            ...styles.attentionBadge,
+                            ...(dept.level === "high"
+                              ? styles.attentionHigh
+                              : dept.level === "middle"
+                              ? styles.attentionMiddle
+                              : styles.attentionLow),
+                          }}
+                        >
+                          {dept.label}
+                        </span>
                       </div>
 
-                      <span
-                        style={{
-                          ...styles.attentionBadge,
-                          ...(dept.level === "high"
-                            ? styles.attentionHigh
-                            : dept.level === "middle"
-                            ? styles.attentionMiddle
-                            : styles.attentionLow),
-                        }}
-                      >
-                        {dept.label}
-                      </span>
-                    </div>
+                      <p style={styles.attentionHeadline}>
+                        {
+                          getDepartmentDisplayStatus(
+                            dept.department,
+                            dept.post_count,
+                            dept.pending_count,
+                            departmentRoiPoints
+                          ).headline
+                        }
+                      </p>
 
-                    <p style={styles.attentionHeadline}>
-                      {
-                        getDepartmentDisplayStatus(
-                          dept.department,
-                          dept.post_count,
-                          dept.pending_count,
-                          departmentRfpPoints.get(
-                            normalizeDepartmentName(dept.department)
-                          ) ?? 0
-                        ).headline
-                      }
-                    </p>
+                      <div style={styles.attentionMetrics}>
+                        <div style={styles.attentionMetricBox}>
+                          <span>未承認</span>
+                          <strong>{dept.pending_count}件</strong>
+                        </div>
 
-                    <div style={styles.attentionMetrics}>
-                      <div style={styles.attentionMetricBox}>
-                        <span>未承認</span>
-                        <strong>{dept.pending_count}件</strong>
+                        <div style={styles.attentionMetricBox}>
+                          <span>投稿</span>
+                          <strong>{dept.post_count}件</strong>
+                        </div>
+
+                        <div style={styles.attentionMetricBox}>
+                          <span>ROI-P</span>
+                          <strong>{departmentRoiPoints.toLocaleString()}P</strong>
+                        </div>
+
+                        <div style={styles.attentionMetricBox}>
+                          <span>削減時間</span>
+                          <strong>
+                            {Math.round(
+                              executiveStats?.hoursSaved ?? 0
+                            ).toLocaleString()}
+                            h
+                          </strong>
+                        </div>
+
+                        <div style={styles.attentionMetricBox}>
+                          <span>AI信頼度</span>
+                          <strong>
+                            {Math.round(
+                              executiveStats?.averageConfidence ?? 0
+                            )}
+                            %
+                          </strong>
+                        </div>
                       </div>
 
-                      <div style={styles.attentionMetricBox}>
-                        <span>投稿</span>
-                        <strong>{dept.post_count}件</strong>
+                      <p style={styles.attentionReason}>{dept.reason}</p>
+
+                      <div style={styles.recommendBox}>
+                        <p style={styles.recommendTitle}>推奨アクション</p>
+
+                        <div style={styles.recommendList}>
+                          {dept.recommended_actions?.map((action, idx) => (
+                            <span key={idx} style={styles.recommendTag}>
+                              {action}
+                            </span>
+                          ))}
+                        </div>
                       </div>
-
-                      <div style={styles.attentionMetricBox}>
-                        <span>ROI-P</span>
-                        <strong>
-                          {(
-                            departmentRfpPoints.get(
-                              normalizeDepartmentName(dept.department)
-                            ) ?? 0
-                          ).toLocaleString()}
-                          P
-                        </strong>
-                      </div>
-                    </div>
-
-                    <p style={styles.attentionReason}>{dept.reason}</p>
-
-                    <div style={styles.recommendBox}>
-                      <p style={styles.recommendTitle}>推奨アクション</p>
-
-                      <div style={styles.recommendList}>
-                        {dept.recommended_actions?.map((action, idx) => (
-                          <span key={idx} style={styles.recommendTag}>
-                            {action}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                  </button>
-                ))
+                    </button>
+                  );
+                })
               )}
             </div>
           </Panel>
