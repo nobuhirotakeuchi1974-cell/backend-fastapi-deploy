@@ -17,7 +17,7 @@ router = APIRouter(
 logger = logging.getLogger("human-capital-os")
 logger.setLevel(logging.INFO)
 
-POINT_VALUE = 100000
+POINT_VALUE = 10000
 HOURLY_VALUE = 5000
 
 
@@ -120,9 +120,9 @@ def estimate_human_capital(payload: dict):
 
     confidence_score = min(confidence_score, 95)
 
-    roi_points = round(base_points / 10, 1)
+    roi_points = base_points
     if roi_points <= 0:
-        roi_points = 0.5
+       roi_points = 1
 
     estimated_value = int(roi_points * POINT_VALUE)
     estimated_hours_saved = round(estimated_value / HOURLY_VALUE, 1)
@@ -255,10 +255,10 @@ def review_post(
 
     if post.status == "approved":
         approved_points = post.manager_points or post.self_points or 0
-        post.roi_points = round(approved_points / 10, 1)
+        post.roi_points = approved_points
 
-        if post.roi_points <= 0:
-            post.roi_points = 0.5
+    if post.roi_points <= 0:
+        post.roi_points = 1
 
         post.estimated_value = int(post.roi_points * POINT_VALUE)
         post.estimated_hours_saved = round(post.estimated_value / HOURLY_VALUE, 1)
