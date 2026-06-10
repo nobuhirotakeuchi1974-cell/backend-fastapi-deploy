@@ -47,11 +47,11 @@ export default function LoginPage() {
       }
 
       localStorage.setItem("token", data.access_token);
-      setMessage("ログイン成功。ダッシュボードへ移動します。");
+      setMessage("ログイン成功。トップページへ移動します。");
 
-      setTimeout(() => {
-        router.push("/dashboard");
-      }, 300);
+setTimeout(() => {
+  router.push("/");
+}, 300);
     } catch (err) {
       console.error(err);
       setError("APIに接続できません。Backend URL または CORS を確認してください。");
