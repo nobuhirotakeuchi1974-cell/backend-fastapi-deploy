@@ -294,7 +294,10 @@ export default function ManagerPage() {
   return (
     <AuthGuard>
       <main className="min-h-screen w-full max-w-full overflow-x-hidden bg-[#071326] px-4 py-8 text-white sm:px-6 sm:py-10">
-        <section className="mx-auto w-full max-w-6xl overflow-x-hidden">
+        <section
+          className="mx-auto w-full overflow-x-hidden"
+          style={{ maxWidth: "960px" }}
+    >
           <header className="relative w-full max-w-full overflow-hidden rounded-[24px] border border-emerald-400/20 bg-gradient-to-r from-[#0b1b33] to-[#06402f] p-5 shadow-2xl shadow-emerald-500/10 sm:rounded-[28px] sm:p-8">
             <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(16,185,129,0.18),transparent_45%)]" />
 
