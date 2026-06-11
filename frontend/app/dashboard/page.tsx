@@ -91,18 +91,6 @@ type DynamicRoiTrendItem = {
   financial_impact: number;
 };
 
-type DepartmentAverageComparison = {
-  department: string;
-  postCount: number;
-  approvedCount: number;
-  roiPoints: number;
-  averageRoiPerPost: number;
-  companyAverageRoiPerPost: number;
-  diffPercent: number;
-  statusLabel: string;
-  detail: string;
-};
-
 const API_BASE =
   process.env.NEXT_PUBLIC_API_BASE_URL ||
   "https://human-capital-os-api.onrender.com";
@@ -159,6 +147,30 @@ function rfpLevelLabel(point?: number | null) {
 
 function formatIntegerPoint(value?: number | null) {
   return `${Math.round(Number(value || 0)).toLocaleString()}P`;
+}
+
+function getDiffPercent(value: number, average: number) {
+  if (!Number.isFinite(value) || !Number.isFinite(average) || average <= 0) {
+    return 0;
+  }
+
+  return ((value - average) / average) * 100;
+}
+
+function formatDiffPercent(value: number) {
+  if (!Number.isFinite(value)) return "+0%";
+
+  const rounded = Math.round(value);
+
+  if (rounded === 0) return "±0%";
+
+  return `${rounded > 0 ? "+" : ""}${rounded}%`;
+}
+
+function getDiffStyle(value: number): CSSProperties {
+  if (value >= 10) return styles.metricDiffPositive;
+  if (value <= -10) return styles.metricDiffNegative;
+  return styles.metricDiffNeutral;
 }
 
 function getDepartmentDisplayStatus(
@@ -443,56 +455,46 @@ export default function DashboardPage() {
   const companyAverageRoiPerPost =
     approvedPostCount > 0 ? rfpTotalPoints / approvedPostCount : 0;
 
-  const departmentAverageComparisons = useMemo<DepartmentAverageComparison[]>(
-    () => {
-      const departmentNames = Array.from(
-        new Set(posts.map((post) => normalizeDepartmentName(post.department)))
-      ).filter(Boolean);
+  const companyAverageDepartmentMetrics = useMemo(() => {
+    const departmentNames = Array.from(
+      new Set(posts.map((post) => normalizeDepartmentName(post.department)))
+    ).filter(Boolean);
 
-      return departmentNames
-        .map((department) => {
-          const stats = departmentPostStats.get(department) ?? {
-            postCount: 0,
-            approvedCount: 0,
-            pendingCount: 0,
-          };
+    const departmentCount = departmentNames.length || 1;
 
-          const roiPoints = departmentRfpPoints.get(department) ?? 0;
-          const averageRoiPerPost =
-            stats.approvedCount > 0 ? roiPoints / stats.approvedCount : 0;
+    const totalPostCount = departmentNames.reduce((sum, department) => {
+      return sum + (departmentPostStats.get(department)?.postCount ?? 0);
+    }, 0);
 
-          const diffPercent =
-            companyAverageRoiPerPost > 0
-              ? ((averageRoiPerPost - companyAverageRoiPerPost) /
-                  companyAverageRoiPerPost) *
-                100
-              : 0;
+    const totalPendingCount = departmentNames.reduce((sum, department) => {
+      return sum + (departmentPostStats.get(department)?.pendingCount ?? 0);
+    }, 0);
 
-          const isHigh = diffPercent >= 0;
+    const totalHoursSaved = departmentNames.reduce((sum, department) => {
+      return sum + (departmentExecutiveStats.get(department)?.hoursSaved ?? 0);
+    }, 0);
 
-          return {
-            department,
-            postCount: stats.postCount,
-            approvedCount: stats.approvedCount,
-            roiPoints,
-            averageRoiPerPost,
-            companyAverageRoiPerPost,
-            diffPercent,
-            statusLabel: isHigh ? "平均より高い" : "平均より低い",
-            detail: isHigh
-              ? "1投稿あたりのROI-Pが全社平均を上回っています。成功事例として他部門へ横展開できる可能性があります。"
-              : "投稿は発生しているものの、1投稿あたりのROI-Pが全社平均を下回っています。挑戦テーマの再設計や成功事例の共有を推奨します。",
-          };
-        })
-        .sort((a, b) => b.averageRoiPerPost - a.averageRoiPerPost);
-    },
-    [
-      posts,
-      departmentPostStats,
-      departmentRfpPoints,
-      companyAverageRoiPerPost,
-    ]
-  );
+    const totalConfidence = departmentNames.reduce((sum, department) => {
+      return (
+        sum + (departmentExecutiveStats.get(department)?.averageConfidence ?? 0)
+      );
+    }, 0);
+
+    return {
+      postCount: totalPostCount / departmentCount,
+      pendingCount: totalPendingCount / departmentCount,
+      roiPoints: rfpTotalPoints / departmentCount,
+      hoursSaved: totalHoursSaved / departmentCount,
+      averageConfidence: totalConfidence / departmentCount,
+      averageRoiPerPost: companyAverageRoiPerPost,
+    };
+  }, [
+    posts,
+    departmentPostStats,
+    departmentExecutiveStats,
+    rfpTotalPoints,
+    companyAverageRoiPerPost,
+  ]);
 
   const achievementRate =
     targetRoiPoints > 0
@@ -742,6 +744,23 @@ export default function DashboardPage() {
                     departmentExecutiveStats.get(departmentName);
                   const departmentRoiPoints =
                     departmentRfpPoints.get(departmentName) ?? 0;
+                  const departmentStats = departmentPostStats.get(
+                    departmentName
+                  ) ?? {
+                    postCount: 0,
+                    approvedCount: 0,
+                    pendingCount: 0,
+                  };
+                  const departmentHoursSaved = Math.round(
+                    executiveStats?.hoursSaved ?? 0
+                  );
+                  const departmentAverageRoiPerPost =
+                    departmentStats.approvedCount > 0
+                      ? departmentRoiPoints / departmentStats.approvedCount
+                      : 0;
+                  const departmentAverageConfidence = Math.round(
+                    executiveStats?.averageConfidence ?? 0
+                  );
 
                   return (
                     <button
@@ -790,41 +809,64 @@ export default function DashboardPage() {
                       </p>
 
                       <div style={styles.attentionMetrics}>
-                        <div style={styles.attentionMetricBox}>
-                          <span>未承認</span>
-                          <strong>{dept.pending_count}件</strong>
-                        </div>
+                        <ExecutiveMetric
+                          label="未承認"
+                          value={`${departmentStats.pendingCount}件`}
+                          diffPercent={getDiffPercent(
+                            departmentStats.pendingCount,
+                            companyAverageDepartmentMetrics.pendingCount
+                          )}
+                        />
 
-                        <div style={styles.attentionMetricBox}>
-                          <span>投稿</span>
-                          <strong>{dept.post_count}件</strong>
-                        </div>
+                        <ExecutiveMetric
+                          label="投稿"
+                          value={`${departmentStats.postCount}件`}
+                          diffPercent={getDiffPercent(
+                            departmentStats.postCount,
+                            companyAverageDepartmentMetrics.postCount
+                          )}
+                        />
 
-                        <div style={styles.attentionMetricBox}>
-                          <span>ROI-P</span>
-                          <strong>{departmentRoiPoints.toLocaleString()}P</strong>
-                        </div>
+                        <ExecutiveMetric
+                          label="ROI-P"
+                          value={`${departmentRoiPoints.toLocaleString()}P`}
+                          diffPercent={getDiffPercent(
+                            departmentRoiPoints,
+                            companyAverageDepartmentMetrics.roiPoints
+                          )}
+                        />
 
-                        <div style={styles.attentionMetricBox}>
-                          <span>削減時間</span>
-                          <strong>
-                            {Math.round(
-                              executiveStats?.hoursSaved ?? 0
-                            ).toLocaleString()}
-                            h
-                          </strong>
-                        </div>
+                        <ExecutiveMetric
+                          label="平均ROI-P"
+                          value={`${departmentAverageRoiPerPost.toFixed(1)}P/件`}
+                          diffPercent={getDiffPercent(
+                            departmentAverageRoiPerPost,
+                            companyAverageDepartmentMetrics.averageRoiPerPost
+                          )}
+                        />
 
-                        <div style={styles.attentionMetricBox}>
-                          <span>AI信頼度</span>
-                          <strong>
-                            {Math.round(
-                              executiveStats?.averageConfidence ?? 0
-                            )}
-                            %
-                          </strong>
-                        </div>
+                        <ExecutiveMetric
+                          label="削減時間"
+                          value={`${departmentHoursSaved.toLocaleString()}h`}
+                          diffPercent={getDiffPercent(
+                            departmentHoursSaved,
+                            companyAverageDepartmentMetrics.hoursSaved
+                          )}
+                        />
+
+                        <ExecutiveMetric
+                          label="AI信頼度"
+                          value={`${departmentAverageConfidence}%`}
+                          diffPercent={getDiffPercent(
+                            departmentAverageConfidence,
+                            companyAverageDepartmentMetrics.averageConfidence
+                          )}
+                        />
                       </div>
+
+                      <p style={styles.attentionDiffNote}>
+                        ※（）内は全部門平均との差分です。投稿・ROI-P・削減時間は部門別合計、平均ROI-Pは1投稿あたりの平均との差を示します。
+                      </p>
 
                       <p style={styles.attentionReason}>{dept.reason}</p>
 
@@ -932,116 +974,17 @@ export default function DashboardPage() {
             </div>
           </Panel>
 
-          <div style={styles.twoColumn}>
-            <Panel title="部門別平均ROI-P比較" tag="DEPARTMENT AVG">
-              <p style={styles.panelLead}>
-                各部門のROI-Pを投稿件数で割り、1投稿あたりの平均ROI-Pとして比較します。
-                単純な合計ではなく、部門ごとの挑戦行動の質と広がりを確認します。
-              </p>
+          <Panel title="人的資本ROI-Pトレンド" tag="TREND">
+            <p style={styles.panelLead}>
+              現場で生まれた挑戦行動を経営価値へ換算し、
+              月次で可視化します。
+            </p>
 
-              {departmentAverageComparisons.length === 0 ? (
+            <div style={styles.chartBox}>
+              {dynamicRoiTrend.length === 0 ? (
                 <div style={styles.emptyBox}>
-                  部門別の平均ROI-P比較データはありません。
-                </div>
-              ) : (
-                <div style={styles.departmentAverageList}>
-                  <div style={styles.companyAverageBox}>
-                    <span style={styles.companyAverageLabel}>全社平均</span>
-                    <strong style={styles.companyAverageValue}>
-                      {companyAverageRoiPerPost.toFixed(1)}P / 件
-                    </strong>
-                  </div>
-
-                  {departmentAverageComparisons.map((dept) => {
-                    const isHigh = dept.diffPercent >= 0;
-
-                    return (
-                      <div
-                        key={dept.department}
-                        style={{
-                          ...styles.departmentAverageCard,
-                          ...(isHigh
-                            ? styles.departmentAverageCardHigh
-                            : styles.departmentAverageCardLow),
-                        }}
-                      >
-                        <div style={styles.departmentAverageHeader}>
-                          <div style={styles.flexItemMin}>
-                            <p style={styles.departmentAverageLabel}>
-                              {dept.statusLabel}
-                            </p>
-
-                            <h3 style={styles.departmentAverageDept}>
-                              {dept.department}
-                            </h3>
-                          </div>
-
-                          <span
-                            style={{
-                              ...styles.departmentAverageBadge,
-                              ...(isHigh
-                                ? styles.departmentAverageBadgeHigh
-                                : styles.departmentAverageBadgeLow),
-                            }}
-                          >
-                            {isHigh ? "+" : ""}
-                            {Math.round(dept.diffPercent)}%
-                          </span>
-                        </div>
-
-                        <div style={styles.departmentAverageMetrics}>
-                          <div style={styles.departmentAverageMetricBox}>
-                            <span>部門平均</span>
-                            <strong>
-                              {dept.averageRoiPerPost.toFixed(1)}P / 件
-                            </strong>
-                          </div>
-
-                          <div style={styles.departmentAverageMetricBox}>
-                            <span>全社平均</span>
-                            <strong>
-                              {dept.companyAverageRoiPerPost.toFixed(1)}P / 件
-                            </strong>
-                          </div>
-
-                          <div style={styles.departmentAverageMetricBox}>
-                            <span>承認済み</span>
-                            <strong>{dept.approvedCount}件</strong>
-                          </div>
-
-                          <div style={styles.departmentAverageMetricBox}>
-                            <span>合計ROI-P</span>
-                            <strong>{dept.roiPoints.toLocaleString()}P</strong>
-                          </div>
-                        </div>
-
-                        <p style={styles.departmentAverageDetail}>
-                          {dept.detail}
-                        </p>
-                      </div>
-                    );
-                  })}
-
-                  <div style={styles.biasPoCNote}>
-                    <strong>読み方：</strong>
-                    例えば「-20%」は、その部門の1投稿あたり平均ROI-Pが全社平均より20%低いという意味です。
-                    評価の良し悪しを決めるものではなく、経営が支援・横展開・確認すべき部門傾向を見つけるための補助指標です。
-                  </div>
-                </div>
-              )}
-            </Panel>
-
-            <Panel title="人的資本ROI-Pトレンド" tag="TREND">
-              <p style={styles.panelLead}>
-                現場で生まれた挑戦行動を経営価値へ換算し、
-                月次で可視化します。
-              </p>
-
-              <div style={styles.chartBox}>
-                {dynamicRoiTrend.length === 0 ? (
-                  <div style={styles.emptyBox}>
-                    承認済み投稿がまだないため、ROIトレンドデータはありません。
-                  </div>
+                  承認済み投稿がまだないため、ROIトレンドデータはありません。
+                  
                 ) : (
                   <ResponsiveContainer width="100%" height="100%">
                     <LineChart data={dynamicRoiTrend}>
@@ -1187,6 +1130,30 @@ function MiniCard({ label, value }: { label: string; value: string }) {
     <div style={styles.miniCard}>
       <p style={styles.miniCardLabel}>{label}</p>
       <strong style={styles.miniCardValue}>{value}</strong>
+    </div>
+  );
+}
+
+function ExecutiveMetric({
+  label,
+  value,
+  diffPercent,
+}: {
+  label: string;
+  value: string;
+  diffPercent?: number;
+}) {
+  return (
+    <div style={styles.attentionMetricBox}>
+      <span>{label}</span>
+      <strong style={styles.attentionMetricValue}>
+        {value}
+        {typeof diffPercent === "number" && (
+          <small style={{ ...styles.attentionMetricDiff, ...getDiffStyle(diffPercent) }}>
+            ({formatDiffPercent(diffPercent)})
+          </small>
+        )}
+      </strong>
     </div>
   );
 }
@@ -1550,6 +1517,30 @@ const styles: Record<string, CSSProperties> = {
     borderRadius: "16px",
     padding: "14px",
     fontSize: "14px",
+  },
+  attentionMetricValue: {
+    display: "flex",
+    alignItems: "baseline",
+    gap: "6px",
+    flexWrap: "wrap",
+    marginTop: "6px",
+    color: "#f8fafc",
+    fontSize: "18px",
+    lineHeight: 1.25,
+  },
+  attentionMetricDiff: {
+    fontSize: "12px",
+    fontWeight: 900,
+    whiteSpace: "nowrap",
+  },
+  metricDiffPositive: { color: "#6ee7b7" },
+  metricDiffNegative: { color: "#fca5a5" },
+  metricDiffNeutral: { color: "#cbd5e1" },
+  attentionDiffNote: {
+    margin: "-4px 0 16px",
+    color: "#94a3b8",
+    fontSize: "12px",
+    lineHeight: 1.7,
   },
   attentionReason: {
     margin: 0,
