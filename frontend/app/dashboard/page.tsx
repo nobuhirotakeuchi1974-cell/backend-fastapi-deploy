@@ -984,8 +984,8 @@ export default function DashboardPage() {
               {dynamicRoiTrend.length === 0 ? (
                 <div style={styles.emptyBox}>
                   承認済み投稿がまだないため、ROIトレンドデータはありません。
-                  
-                ) : (
+                </div>
+              ) : (
                   <ResponsiveContainer width="100%" height="100%">
                     <LineChart data={dynamicRoiTrend}>
                       <CartesianGrid stroke="rgba(148,163,184,0.12)" />
