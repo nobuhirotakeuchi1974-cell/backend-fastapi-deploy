@@ -91,6 +91,18 @@ type DynamicRoiTrendItem = {
   financial_impact: number;
 };
 
+type DepartmentAverageComparison = {
+  department: string;
+  postCount: number;
+  approvedCount: number;
+  roiPoints: number;
+  averageRoiPerPost: number;
+  companyAverageRoiPerPost: number;
+  diffPercent: number;
+  statusLabel: string;
+  detail: string;
+};
+
 const API_BASE =
   process.env.NEXT_PUBLIC_API_BASE_URL ||
   "https://human-capital-os-api.onrender.com";
@@ -313,8 +325,6 @@ export default function DashboardPage() {
 
   const targetRoiPoints = summary?.target_roi_points ?? 6000;
   const averageConfidence = Math.round(summary?.average_confidence ?? 0);
-  const departmentBiasAlerts = summary?.bias_alerts ?? [];
-
   const departmentRfpPoints = useMemo(() => {
     const map = new Map<string, number>();
 
@@ -426,6 +436,64 @@ export default function DashboardPage() {
     );
   }, [departmentRfpPoints]);
 
+  const approvedPostCount = useMemo(() => {
+    return posts.filter((post) => isApproved(post)).length;
+  }, [posts]);
+
+  const companyAverageRoiPerPost =
+    approvedPostCount > 0 ? rfpTotalPoints / approvedPostCount : 0;
+
+  const departmentAverageComparisons = useMemo<DepartmentAverageComparison[]>(
+    () => {
+      const departmentNames = Array.from(
+        new Set(posts.map((post) => normalizeDepartmentName(post.department)))
+      ).filter(Boolean);
+
+      return departmentNames
+        .map((department) => {
+          const stats = departmentPostStats.get(department) ?? {
+            postCount: 0,
+            approvedCount: 0,
+            pendingCount: 0,
+          };
+
+          const roiPoints = departmentRfpPoints.get(department) ?? 0;
+          const averageRoiPerPost =
+            stats.approvedCount > 0 ? roiPoints / stats.approvedCount : 0;
+
+          const diffPercent =
+            companyAverageRoiPerPost > 0
+              ? ((averageRoiPerPost - companyAverageRoiPerPost) /
+                  companyAverageRoiPerPost) *
+                100
+              : 0;
+
+          const isHigh = diffPercent >= 0;
+
+          return {
+            department,
+            postCount: stats.postCount,
+            approvedCount: stats.approvedCount,
+            roiPoints,
+            averageRoiPerPost,
+            companyAverageRoiPerPost,
+            diffPercent,
+            statusLabel: isHigh ? "平均より高い" : "平均より低い",
+            detail: isHigh
+              ? "1投稿あたりのROI-Pが全社平均を上回っています。成功事例として他部門へ横展開できる可能性があります。"
+              : "投稿は発生しているものの、1投稿あたりのROI-Pが全社平均を下回っています。挑戦テーマの再設計や成功事例の共有を推奨します。",
+          };
+        })
+        .sort((a, b) => b.averageRoiPerPost - a.averageRoiPerPost);
+    },
+    [
+      posts,
+      departmentPostStats,
+      departmentRfpPoints,
+      companyAverageRoiPerPost,
+    ]
+  );
+
   const achievementRate =
     targetRoiPoints > 0
       ? ((rfpTotalPoints / targetRoiPoints) * 100).toFixed(2)
@@ -465,14 +533,6 @@ export default function DashboardPage() {
       }))
       .sort((a, b) => a.month.localeCompare(b.month));
   }, [posts]);
-
-  const primaryBiasAlert = useMemo(() => {
-    if (departmentBiasAlerts.length === 0) return null;
-
-    return [...departmentBiasAlerts].sort(
-      (a, b) => Math.abs(b.diff) - Math.abs(a.diff)
-    )[0];
-  }, [departmentBiasAlerts]);
 
   const departmentOptions = useMemo(() => {
     const names = Array.from(
@@ -873,76 +933,99 @@ export default function DashboardPage() {
           </Panel>
 
           <div style={styles.twoColumn}>
-            <Panel title="部門間評価乖離" tag="BIAS ALERT">
-              {!primaryBiasAlert ? (
+            <Panel title="部門別平均ROI-P比較" tag="DEPARTMENT AVG">
+              <p style={styles.panelLead}>
+                各部門のROI-Pを投稿件数で割り、1投稿あたりの平均ROI-Pとして比較します。
+                単純な合計ではなく、部門ごとの挑戦行動の質と広がりを確認します。
+              </p>
+
+              {departmentAverageComparisons.length === 0 ? (
                 <div style={styles.emptyBox}>
-                  評価乖離アラートはありません。
+                  部門別の平均ROI-P比較データはありません。
                 </div>
               ) : (
-                <div style={styles.biasFocusCard}>
-                  <div style={styles.biasFocusHeader}>
-                    <div style={styles.flexItemMin}>
-                      <p style={styles.biasFocusLabel}>最重要確認ポイント</p>
-
-                      <h3 style={styles.biasFocusDept}>
-                        {normalizeDepartmentName(primaryBiasAlert.department)} /{" "}
-                        {primaryBiasAlert.category}
-                      </h3>
-                    </div>
-
-                    <span style={styles.biasFocusBadge}>
-                      {primaryBiasAlert.risk}
-                    </span>
+                <div style={styles.departmentAverageList}>
+                  <div style={styles.companyAverageBox}>
+                    <span style={styles.companyAverageLabel}>全社平均</span>
+                    <strong style={styles.companyAverageValue}>
+                      {companyAverageRoiPerPost.toFixed(1)}P / 件
+                    </strong>
                   </div>
 
-                  <div style={styles.biasFocusBody}>
-                    <div style={styles.biasMainMetric}>
-                      <span style={styles.biasMetricLabel}>全社平均との差</span>
+                  {departmentAverageComparisons.map((dept) => {
+                    const isHigh = dept.diffPercent >= 0;
 
-                      <strong style={styles.biasFocusDiff}>
-                        {primaryBiasAlert.diff > 0 ? "+" : ""}
-                        {primaryBiasAlert.diff}%
-                      </strong>
-                    </div>
+                    return (
+                      <div
+                        key={dept.department}
+                        style={{
+                          ...styles.departmentAverageCard,
+                          ...(isHigh
+                            ? styles.departmentAverageCardHigh
+                            : styles.departmentAverageCardLow),
+                        }}
+                      >
+                        <div style={styles.departmentAverageHeader}>
+                          <div style={styles.flexItemMin}>
+                            <p style={styles.departmentAverageLabel}>
+                              {dept.statusLabel}
+                            </p>
 
-                    <div style={styles.biasSubMetrics}>
-                      <div style={styles.biasSubMetricBox}>
-                        <span>部門平均</span>
-                        <strong>
-                          {Number(
-                            primaryBiasAlert.department_average_roi || 0
-                          ).toFixed(1)}
-                          P
-                        </strong>
+                            <h3 style={styles.departmentAverageDept}>
+                              {dept.department}
+                            </h3>
+                          </div>
+
+                          <span
+                            style={{
+                              ...styles.departmentAverageBadge,
+                              ...(isHigh
+                                ? styles.departmentAverageBadgeHigh
+                                : styles.departmentAverageBadgeLow),
+                            }}
+                          >
+                            {isHigh ? "+" : ""}
+                            {Math.round(dept.diffPercent)}%
+                          </span>
+                        </div>
+
+                        <div style={styles.departmentAverageMetrics}>
+                          <div style={styles.departmentAverageMetricBox}>
+                            <span>部門平均</span>
+                            <strong>
+                              {dept.averageRoiPerPost.toFixed(1)}P / 件
+                            </strong>
+                          </div>
+
+                          <div style={styles.departmentAverageMetricBox}>
+                            <span>全社平均</span>
+                            <strong>
+                              {dept.companyAverageRoiPerPost.toFixed(1)}P / 件
+                            </strong>
+                          </div>
+
+                          <div style={styles.departmentAverageMetricBox}>
+                            <span>承認済み</span>
+                            <strong>{dept.approvedCount}件</strong>
+                          </div>
+
+                          <div style={styles.departmentAverageMetricBox}>
+                            <span>合計ROI-P</span>
+                            <strong>{dept.roiPoints.toLocaleString()}P</strong>
+                          </div>
+                        </div>
+
+                        <p style={styles.departmentAverageDetail}>
+                          {dept.detail}
+                        </p>
                       </div>
-
-                      <div style={styles.biasSubMetricBox}>
-                        <span>全社平均</span>
-                        <strong>
-                          {Number(
-                            primaryBiasAlert.company_average_roi || 0
-                          ).toFixed(1)}
-                          P
-                        </strong>
-                      </div>
-
-                      <div style={styles.biasSubMetricBox}>
-                        <span>対象件数</span>
-                        <strong>{primaryBiasAlert.count}件</strong>
-                      </div>
-                    </div>
-                  </div>
-
-                  <p style={styles.biasFocusDetail}>
-                    他部門より挑戦行動が高く評価されている状態です。
-                    成功事例の横展開候補として、内容確認を推奨します。
-                  </p>
+                    );
+                  })}
 
                   <div style={styles.biasPoCNote}>
-                    <strong>評価補助PoC：</strong>
-                    社員投稿・上司評価・部門平均との差分から傾向を検知。
-                    AIが評価を決定するのではなく、
-                    上司が確認すべき論点を補助します。
+                    <strong>読み方：</strong>
+                    例えば「-20%」は、その部門の1投稿あたり平均ROI-Pが全社平均より20%低いという意味です。
+                    評価の良し悪しを決めるものではなく、経営が支援・横展開・確認すべき部門傾向を見つけるための補助指標です。
                   </div>
                 </div>
               )}
@@ -1745,6 +1828,115 @@ const styles: Record<string, CSSProperties> = {
     background: "rgba(16,185,129,0.12)",
     border: "1px solid rgba(52,211,153,0.24)",
     color: "#d1fae5",
+    fontSize: "14px",
+    lineHeight: 1.8,
+    overflowWrap: "break-word",
+  },
+  departmentAverageList: {
+    display: "grid",
+    gap: "14px",
+  },
+  companyAverageBox: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    gap: "12px",
+    padding: "14px 16px",
+    borderRadius: "18px",
+    background: "rgba(2,6,23,0.5)",
+    border: "1px solid rgba(148,163,184,0.14)",
+    flexWrap: "wrap",
+  },
+  companyAverageLabel: {
+    color: "#94a3b8",
+    fontSize: "13px",
+    fontWeight: 900,
+    letterSpacing: "0.08em",
+  },
+  companyAverageValue: {
+    color: "#f8fafc",
+    fontSize: "20px",
+    fontWeight: 900,
+    whiteSpace: "nowrap",
+  },
+  departmentAverageCard: {
+    minWidth: 0,
+    borderRadius: "20px",
+    padding: "18px",
+    background: "rgba(2,6,23,0.46)",
+    border: "1px solid rgba(148,163,184,0.14)",
+    boxSizing: "border-box",
+  },
+  departmentAverageCardHigh: {
+    background:
+      "linear-gradient(135deg, rgba(16,185,129,0.12), rgba(2,6,23,0.48))",
+    border: "1px solid rgba(52,211,153,0.28)",
+  },
+  departmentAverageCardLow: {
+    background:
+      "linear-gradient(135deg, rgba(245,158,11,0.12), rgba(2,6,23,0.48))",
+    border: "1px solid rgba(251,191,36,0.28)",
+  },
+  departmentAverageHeader: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+    gap: "12px",
+    marginBottom: "14px",
+    flexWrap: "wrap",
+  },
+  departmentAverageLabel: {
+    margin: 0,
+    color: "#94a3b8",
+    fontSize: "12px",
+    fontWeight: 900,
+    letterSpacing: "0.08em",
+  },
+  departmentAverageDept: {
+    margin: "6px 0 0",
+    color: "#f8fafc",
+    fontSize: "22px",
+    fontWeight: 900,
+    lineHeight: 1.25,
+  },
+  departmentAverageBadge: {
+    padding: "9px 14px",
+    borderRadius: "999px",
+    fontSize: "15px",
+    fontWeight: 900,
+    whiteSpace: "nowrap",
+    flex: "0 0 auto",
+  },
+  departmentAverageBadgeHigh: {
+    background: "rgba(16,185,129,0.18)",
+    border: "1px solid rgba(52,211,153,0.34)",
+    color: "#bbf7d0",
+  },
+  departmentAverageBadgeLow: {
+    background: "rgba(245,158,11,0.18)",
+    border: "1px solid rgba(251,191,36,0.34)",
+    color: "#fde68a",
+  },
+  departmentAverageMetrics: {
+    display: "grid",
+    gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 120px), 1fr))",
+    gap: "10px",
+    marginBottom: "14px",
+  },
+  departmentAverageMetricBox: {
+    minWidth: 0,
+    background: "rgba(15,23,42,0.62)",
+    border: "1px solid rgba(148,163,184,0.14)",
+    borderRadius: "16px",
+    padding: "13px",
+    color: "#cbd5e1",
+    fontSize: "12px",
+    fontWeight: 800,
+    boxSizing: "border-box",
+  },
+  departmentAverageDetail: {
+    margin: 0,
+    color: "#e2e8f0",
     fontSize: "14px",
     lineHeight: 1.8,
     overflowWrap: "break-word",
