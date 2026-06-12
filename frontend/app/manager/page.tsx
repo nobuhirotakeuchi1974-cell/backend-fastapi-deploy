@@ -731,7 +731,7 @@ function AiMetric({ label, value }: { label: string; value: string }) {
   return (
     <div className="min-w-0 rounded-2xl border border-white/10 bg-[#071326]/70 p-4">
       <p className="text-xs font-bold text-slate-400">{label}</p>
-      <p className="mt-2 break-words text-lg font-black text-cyan-200">
+      <p className="mt-2 whitespace-nowrap text-lg font-black text-cyan-200">
         {value}
       </p>
     </div>
