@@ -149,30 +149,6 @@ function formatIntegerPoint(value?: number | null) {
   return `${Math.round(Number(value || 0)).toLocaleString()}P`;
 }
 
-function getDiffPercent(value: number, average: number) {
-  if (!Number.isFinite(value) || !Number.isFinite(average) || average <= 0) {
-    return 0;
-  }
-
-  return ((value - average) / average) * 100;
-}
-
-function formatDiffPercent(value: number) {
-  if (!Number.isFinite(value)) return "+0%";
-
-  const rounded = Math.round(value);
-
-  if (rounded === 0) return "±0%";
-
-  return `${rounded > 0 ? "+" : ""}${rounded}%`;
-}
-
-function getDiffStyle(value: number): CSSProperties {
-  if (value >= 10) return styles.metricDiffPositive;
-  if (value <= -10) return styles.metricDiffNegative;
-  return styles.metricDiffNeutral;
-}
-
 function getDepartmentDisplayStatus(
   department: string,
   postCount: number,
@@ -337,6 +313,8 @@ export default function DashboardPage() {
 
   const targetRoiPoints = summary?.target_roi_points ?? 6000;
   const averageConfidence = Math.round(summary?.average_confidence ?? 0);
+  const departmentBiasAlerts = summary?.bias_alerts ?? [];
+
   const departmentRfpPoints = useMemo(() => {
     const map = new Map<string, number>();
 
@@ -448,54 +426,6 @@ export default function DashboardPage() {
     );
   }, [departmentRfpPoints]);
 
-  const approvedPostCount = useMemo(() => {
-    return posts.filter((post) => isApproved(post)).length;
-  }, [posts]);
-
-  const companyAverageRoiPerPost =
-    approvedPostCount > 0 ? rfpTotalPoints / approvedPostCount : 0;
-
-  const companyAverageDepartmentMetrics = useMemo(() => {
-    const departmentNames = Array.from(
-      new Set(posts.map((post) => normalizeDepartmentName(post.department)))
-    ).filter(Boolean);
-
-    const departmentCount = departmentNames.length || 1;
-
-    const totalPostCount = departmentNames.reduce((sum, department) => {
-      return sum + (departmentPostStats.get(department)?.postCount ?? 0);
-    }, 0);
-
-    const totalPendingCount = departmentNames.reduce((sum, department) => {
-      return sum + (departmentPostStats.get(department)?.pendingCount ?? 0);
-    }, 0);
-
-    const totalHoursSaved = departmentNames.reduce((sum, department) => {
-      return sum + (departmentExecutiveStats.get(department)?.hoursSaved ?? 0);
-    }, 0);
-
-    const totalConfidence = departmentNames.reduce((sum, department) => {
-      return (
-        sum + (departmentExecutiveStats.get(department)?.averageConfidence ?? 0)
-      );
-    }, 0);
-
-    return {
-      postCount: totalPostCount / departmentCount,
-      pendingCount: totalPendingCount / departmentCount,
-      roiPoints: rfpTotalPoints / departmentCount,
-      hoursSaved: totalHoursSaved / departmentCount,
-      averageConfidence: totalConfidence / departmentCount,
-      averageRoiPerPost: companyAverageRoiPerPost,
-    };
-  }, [
-    posts,
-    departmentPostStats,
-    departmentExecutiveStats,
-    rfpTotalPoints,
-    companyAverageRoiPerPost,
-  ]);
-
   const achievementRate =
     targetRoiPoints > 0
       ? ((rfpTotalPoints / targetRoiPoints) * 100).toFixed(2)
@@ -535,6 +465,14 @@ export default function DashboardPage() {
       }))
       .sort((a, b) => a.month.localeCompare(b.month));
   }, [posts]);
+
+  const primaryBiasAlert = useMemo(() => {
+    if (departmentBiasAlerts.length === 0) return null;
+
+    return [...departmentBiasAlerts].sort(
+      (a, b) => Math.abs(b.diff) - Math.abs(a.diff)
+    )[0];
+  }, [departmentBiasAlerts]);
 
   const departmentOptions = useMemo(() => {
     const names = Array.from(
@@ -744,23 +682,6 @@ export default function DashboardPage() {
                     departmentExecutiveStats.get(departmentName);
                   const departmentRoiPoints =
                     departmentRfpPoints.get(departmentName) ?? 0;
-                  const departmentStats = departmentPostStats.get(
-                    departmentName
-                  ) ?? {
-                    postCount: 0,
-                    approvedCount: 0,
-                    pendingCount: 0,
-                  };
-                  const departmentHoursSaved = Math.round(
-                    executiveStats?.hoursSaved ?? 0
-                  );
-                  const departmentAverageRoiPerPost =
-                    departmentStats.approvedCount > 0
-                      ? departmentRoiPoints / departmentStats.approvedCount
-                      : 0;
-                  const departmentAverageConfidence = Math.round(
-                    executiveStats?.averageConfidence ?? 0
-                  );
 
                   return (
                     <button
@@ -809,64 +730,41 @@ export default function DashboardPage() {
                       </p>
 
                       <div style={styles.attentionMetrics}>
-                        <ExecutiveMetric
-                          label="未承認"
-                          value={`${departmentStats.pendingCount}件`}
-                          diffPercent={getDiffPercent(
-                            departmentStats.pendingCount,
-                            companyAverageDepartmentMetrics.pendingCount
-                          )}
-                        />
+                        <div style={styles.attentionMetricBox}>
+                          <span>未承認</span>
+                          <strong>{dept.pending_count}件</strong>
+                        </div>
 
-                        <ExecutiveMetric
-                          label="投稿"
-                          value={`${departmentStats.postCount}件`}
-                          diffPercent={getDiffPercent(
-                            departmentStats.postCount,
-                            companyAverageDepartmentMetrics.postCount
-                          )}
-                        />
+                        <div style={styles.attentionMetricBox}>
+                          <span>投稿</span>
+                          <strong>{dept.post_count}件</strong>
+                        </div>
 
-                        <ExecutiveMetric
-                          label="ROI-P"
-                          value={`${departmentRoiPoints.toLocaleString()}P`}
-                          diffPercent={getDiffPercent(
-                            departmentRoiPoints,
-                            companyAverageDepartmentMetrics.roiPoints
-                          )}
-                        />
+                        <div style={styles.attentionMetricBox}>
+                          <span>ROI-P</span>
+                          <strong>{departmentRoiPoints.toLocaleString()}P</strong>
+                        </div>
 
-                        <ExecutiveMetric
-                          label="平均ROI-P"
-                          value={`${departmentAverageRoiPerPost.toFixed(1)}P/件`}
-                          diffPercent={getDiffPercent(
-                            departmentAverageRoiPerPost,
-                            companyAverageDepartmentMetrics.averageRoiPerPost
-                          )}
-                        />
+                        <div style={styles.attentionMetricBox}>
+                          <span>削減時間</span>
+                          <strong>
+                            {Math.round(
+                              executiveStats?.hoursSaved ?? 0
+                            ).toLocaleString()}
+                            h
+                          </strong>
+                        </div>
 
-                        <ExecutiveMetric
-                          label="削減時間"
-                          value={`${departmentHoursSaved.toLocaleString()}h`}
-                          diffPercent={getDiffPercent(
-                            departmentHoursSaved,
-                            companyAverageDepartmentMetrics.hoursSaved
-                          )}
-                        />
-
-                        <ExecutiveMetric
-                          label="AI信頼度"
-                          value={`${departmentAverageConfidence}%`}
-                          diffPercent={getDiffPercent(
-                            departmentAverageConfidence,
-                            companyAverageDepartmentMetrics.averageConfidence
-                          )}
-                        />
+                        <div style={styles.attentionMetricBox}>
+                          <span>AI信頼度</span>
+                          <strong>
+                            {Math.round(
+                              executiveStats?.averageConfidence ?? 0
+                            )}
+                            %
+                          </strong>
+                        </div>
                       </div>
-
-                      <p style={styles.attentionDiffNote}>
-                        ※（）内は全部門平均との差分です。投稿・ROI-P・削減時間は部門別合計、平均ROI-Pは1投稿あたりの平均との差を示します。
-                      </p>
 
                       <p style={styles.attentionReason}>{dept.reason}</p>
 
@@ -974,18 +872,94 @@ export default function DashboardPage() {
             </div>
           </Panel>
 
-          <Panel title="人的資本ROI-Pトレンド" tag="TREND">
-            <p style={styles.panelLead}>
-              現場で生まれた挑戦行動を経営価値へ換算し、
-              月次で可視化します。
-            </p>
-
-            <div style={styles.chartBox}>
-              {dynamicRoiTrend.length === 0 ? (
+          <div style={styles.twoColumn}>
+            <Panel title="部門間評価乖離" tag="BIAS ALERT">
+              {!primaryBiasAlert ? (
                 <div style={styles.emptyBox}>
-                  承認済み投稿がまだないため、ROIトレンドデータはありません。
+                  評価乖離アラートはありません。
                 </div>
               ) : (
+                <div style={styles.biasFocusCard}>
+                  <div style={styles.biasFocusHeader}>
+                    <div style={styles.flexItemMin}>
+                      <p style={styles.biasFocusLabel}>最重要確認ポイント</p>
+
+                      <h3 style={styles.biasFocusDept}>
+                        {normalizeDepartmentName(primaryBiasAlert.department)} /{" "}
+                        {primaryBiasAlert.category}
+                      </h3>
+                    </div>
+
+                    <span style={styles.biasFocusBadge}>
+                      {primaryBiasAlert.risk}
+                    </span>
+                  </div>
+
+                  <div style={styles.biasFocusBody}>
+                    <div style={styles.biasMainMetric}>
+                      <span style={styles.biasMetricLabel}>全社平均との差</span>
+
+                      <strong style={styles.biasFocusDiff}>
+                        {primaryBiasAlert.diff > 0 ? "+" : ""}
+                        {primaryBiasAlert.diff}%
+                      </strong>
+                    </div>
+
+                    <div style={styles.biasSubMetrics}>
+                      <div style={styles.biasSubMetricBox}>
+                        <span>部門平均</span>
+                        <strong>
+                          {Number(
+                            primaryBiasAlert.department_average_roi || 0
+                          ).toFixed(1)}
+                          P
+                        </strong>
+                      </div>
+
+                      <div style={styles.biasSubMetricBox}>
+                        <span>全社平均</span>
+                        <strong>
+                          {Number(
+                            primaryBiasAlert.company_average_roi || 0
+                          ).toFixed(1)}
+                          P
+                        </strong>
+                      </div>
+
+                      <div style={styles.biasSubMetricBox}>
+                        <span>対象件数</span>
+                        <strong>{primaryBiasAlert.count}件</strong>
+                      </div>
+                    </div>
+                  </div>
+
+                  <p style={styles.biasFocusDetail}>
+                    他部門より挑戦行動が高く評価されている状態です。
+                    成功事例の横展開候補として、内容確認を推奨します。
+                  </p>
+
+                  <div style={styles.biasPoCNote}>
+                    <strong>評価補助PoC：</strong>
+                    社員投稿・上司評価・部門平均との差分から傾向を検知。
+                    AIが評価を決定するのではなく、
+                    上司が確認すべき論点を補助します。
+                  </div>
+                </div>
+              )}
+            </Panel>
+
+            <Panel title="人的資本ROI-Pトレンド" tag="TREND">
+              <p style={styles.panelLead}>
+                現場で生まれた挑戦行動を経営価値へ換算し、
+                月次で可視化します。
+              </p>
+
+              <div style={styles.chartBox}>
+                {dynamicRoiTrend.length === 0 ? (
+                  <div style={styles.emptyBox}>
+                    承認済み投稿がまだないため、ROIトレンドデータはありません。
+                  </div>
+                ) : (
                   <ResponsiveContainer width="100%" height="100%">
                     <LineChart data={dynamicRoiTrend}>
                       <CartesianGrid stroke="rgba(148,163,184,0.12)" />
@@ -1130,30 +1104,6 @@ function MiniCard({ label, value }: { label: string; value: string }) {
     <div style={styles.miniCard}>
       <p style={styles.miniCardLabel}>{label}</p>
       <strong style={styles.miniCardValue}>{value}</strong>
-    </div>
-  );
-}
-
-function ExecutiveMetric({
-  label,
-  value,
-  diffPercent,
-}: {
-  label: string;
-  value: string;
-  diffPercent?: number;
-}) {
-  return (
-    <div style={styles.attentionMetricBox}>
-      <span>{label}</span>
-      <strong style={styles.attentionMetricValue}>
-        {value}
-        {typeof diffPercent === "number" && (
-          <small style={{ ...styles.attentionMetricDiff, ...getDiffStyle(diffPercent) }}>
-            ({formatDiffPercent(diffPercent)})
-          </small>
-        )}
-      </strong>
     </div>
   );
 }
@@ -1518,30 +1468,6 @@ const styles: Record<string, CSSProperties> = {
     padding: "14px",
     fontSize: "14px",
   },
-  attentionMetricValue: {
-    display: "flex",
-    alignItems: "baseline",
-    gap: "6px",
-    flexWrap: "wrap",
-    marginTop: "6px",
-    color: "#f8fafc",
-    fontSize: "18px",
-    lineHeight: 1.25,
-  },
-  attentionMetricDiff: {
-    fontSize: "12px",
-    fontWeight: 900,
-    whiteSpace: "nowrap",
-  },
-  metricDiffPositive: { color: "#6ee7b7" },
-  metricDiffNegative: { color: "#fca5a5" },
-  metricDiffNeutral: { color: "#cbd5e1" },
-  attentionDiffNote: {
-    margin: "-4px 0 16px",
-    color: "#94a3b8",
-    fontSize: "12px",
-    lineHeight: 1.7,
-  },
   attentionReason: {
     margin: 0,
     color: "#cbd5e1",
@@ -1819,115 +1745,6 @@ const styles: Record<string, CSSProperties> = {
     background: "rgba(16,185,129,0.12)",
     border: "1px solid rgba(52,211,153,0.24)",
     color: "#d1fae5",
-    fontSize: "14px",
-    lineHeight: 1.8,
-    overflowWrap: "break-word",
-  },
-  departmentAverageList: {
-    display: "grid",
-    gap: "14px",
-  },
-  companyAverageBox: {
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-    gap: "12px",
-    padding: "14px 16px",
-    borderRadius: "18px",
-    background: "rgba(2,6,23,0.5)",
-    border: "1px solid rgba(148,163,184,0.14)",
-    flexWrap: "wrap",
-  },
-  companyAverageLabel: {
-    color: "#94a3b8",
-    fontSize: "13px",
-    fontWeight: 900,
-    letterSpacing: "0.08em",
-  },
-  companyAverageValue: {
-    color: "#f8fafc",
-    fontSize: "20px",
-    fontWeight: 900,
-    whiteSpace: "nowrap",
-  },
-  departmentAverageCard: {
-    minWidth: 0,
-    borderRadius: "20px",
-    padding: "18px",
-    background: "rgba(2,6,23,0.46)",
-    border: "1px solid rgba(148,163,184,0.14)",
-    boxSizing: "border-box",
-  },
-  departmentAverageCardHigh: {
-    background:
-      "linear-gradient(135deg, rgba(16,185,129,0.12), rgba(2,6,23,0.48))",
-    border: "1px solid rgba(52,211,153,0.28)",
-  },
-  departmentAverageCardLow: {
-    background:
-      "linear-gradient(135deg, rgba(245,158,11,0.12), rgba(2,6,23,0.48))",
-    border: "1px solid rgba(251,191,36,0.28)",
-  },
-  departmentAverageHeader: {
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "flex-start",
-    gap: "12px",
-    marginBottom: "14px",
-    flexWrap: "wrap",
-  },
-  departmentAverageLabel: {
-    margin: 0,
-    color: "#94a3b8",
-    fontSize: "12px",
-    fontWeight: 900,
-    letterSpacing: "0.08em",
-  },
-  departmentAverageDept: {
-    margin: "6px 0 0",
-    color: "#f8fafc",
-    fontSize: "22px",
-    fontWeight: 900,
-    lineHeight: 1.25,
-  },
-  departmentAverageBadge: {
-    padding: "9px 14px",
-    borderRadius: "999px",
-    fontSize: "15px",
-    fontWeight: 900,
-    whiteSpace: "nowrap",
-    flex: "0 0 auto",
-  },
-  departmentAverageBadgeHigh: {
-    background: "rgba(16,185,129,0.18)",
-    border: "1px solid rgba(52,211,153,0.34)",
-    color: "#bbf7d0",
-  },
-  departmentAverageBadgeLow: {
-    background: "rgba(245,158,11,0.18)",
-    border: "1px solid rgba(251,191,36,0.34)",
-    color: "#fde68a",
-  },
-  departmentAverageMetrics: {
-    display: "grid",
-    gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 120px), 1fr))",
-    gap: "10px",
-    marginBottom: "14px",
-  },
-  departmentAverageMetricBox: {
-    minWidth: 0,
-    background: "rgba(15,23,42,0.62)",
-    border: "1px solid rgba(148,163,184,0.14)",
-    borderRadius: "16px",
-    padding: "13px",
-    color: "#cbd5e1",
-    fontSize: "12px",
-    fontWeight: 800,
-    boxSizing: "border-box",
-  },
-  departmentAverageDetail: {
-    margin: 0,
-    color: "#e2e8f0",
     fontSize: "14px",
     lineHeight: 1.8,
     overflowWrap: "break-word",
