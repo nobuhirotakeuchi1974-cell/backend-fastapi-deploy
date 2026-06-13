@@ -17,7 +17,7 @@ router = APIRouter(
 logger = logging.getLogger("human-capital-os")
 logger.setLevel(logging.INFO)
 
-POINT_VALUE = 10000
+POINT_VALUE = 100000
 HOURLY_VALUE = 5000
 
 

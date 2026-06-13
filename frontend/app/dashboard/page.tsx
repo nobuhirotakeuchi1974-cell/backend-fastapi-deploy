@@ -96,7 +96,7 @@ const API_BASE =
   "https://human-capital-os-api.onrender.com";
 
 const ALL_DEPARTMENTS = "全部門";
-const VALUE_PER_POINT = 100000;
+const VALUE_PER_POINT = 10000;
 
 function normalizeDepartmentName(name?: string | null) {
   const value = (name || "未設定").trim();
@@ -543,6 +543,43 @@ export default function DashboardPage() {
     return attentionDepartments;
   }, [posts, departmentPostStats, departmentRfpPoints, attentionDepartments]);
 
+  const managementFocusAverages = useMemo(() => {
+    const targets = executiveAttentionDepartments.slice(0, 4);
+    const count = targets.length || 1;
+
+    const totalPending = targets.reduce(
+      (sum, dept) => sum + dept.pending_count,
+      0
+    );
+    const totalPosts = targets.reduce((sum, dept) => sum + dept.post_count, 0);
+    const totalRoi = targets.reduce((sum, dept) => {
+      const departmentName = normalizeDepartmentName(dept.department);
+      return sum + (departmentRfpPoints.get(departmentName) ?? 0);
+    }, 0);
+    const totalHours = targets.reduce((sum, dept) => {
+      const departmentName = normalizeDepartmentName(dept.department);
+      return (
+        sum +
+        (departmentExecutiveStats.get(departmentName)?.hoursSaved ?? 0)
+      );
+    }, 0);
+    const totalConfidence = targets.reduce((sum, dept) => {
+      const departmentName = normalizeDepartmentName(dept.department);
+      return (
+        sum +
+        (departmentExecutiveStats.get(departmentName)?.averageConfidence ?? 0)
+      );
+    }, 0);
+
+    return {
+      pending: totalPending / count,
+      posts: totalPosts / count,
+      roi: totalRoi / count,
+      hours: totalHours / count,
+      confidence: totalConfidence / count,
+    };
+  }, [executiveAttentionDepartments, departmentRfpPoints, departmentExecutiveStats]);
+
   const summaryCards = [
     {
       title: "全社ROI-P",
@@ -628,7 +665,7 @@ export default function DashboardPage() {
                 </div>
 
                 <div style={styles.badge}>
-                  目標 {formatMoney(summary?.target_value ?? 600000000)}
+                  目標 {formatMoney(targetRoiPoints * VALUE_PER_POINT)}
                 </div>
               </div>
 
@@ -682,6 +719,27 @@ export default function DashboardPage() {
                     departmentExecutiveStats.get(departmentName);
                   const departmentRoiPoints =
                     departmentRfpPoints.get(departmentName) ?? 0;
+                  const departmentHoursSaved = Math.round(
+                    executiveStats?.hoursSaved ?? 0
+                  );
+                  const departmentConfidence = Math.round(
+                    executiveStats?.averageConfidence ?? 0
+                  );
+                  const pendingDiff = Math.round(
+                    dept.pending_count - managementFocusAverages.pending
+                  );
+                  const postDiff = Math.round(
+                    dept.post_count - managementFocusAverages.posts
+                  );
+                  const roiDiff = Math.round(
+                    departmentRoiPoints - managementFocusAverages.roi
+                  );
+                  const hoursDiff = Math.round(
+                    departmentHoursSaved - managementFocusAverages.hours
+                  );
+                  const confidenceDiff = Math.round(
+                    departmentConfidence - managementFocusAverages.confidence
+                  );
 
                   return (
                     <button
@@ -730,40 +788,41 @@ export default function DashboardPage() {
                       </p>
 
                       <div style={styles.attentionMetrics}>
-                        <div style={styles.attentionMetricBox}>
-                          <span>未承認</span>
-                          <strong>{dept.pending_count}件</strong>
-                        </div>
+                        <MetricRow
+                          label="ROI-P"
+                          value={`${departmentRoiPoints.toLocaleString()}P`}
+                          diff={roiDiff}
+                          suffix="P"
+                        />
 
-                        <div style={styles.attentionMetricBox}>
-                          <span>投稿</span>
-                          <strong>{dept.post_count}件</strong>
-                        </div>
+                        <MetricRow
+                          label="投稿"
+                          value={`${dept.post_count}件`}
+                          diff={postDiff}
+                          suffix="件"
+                        />
 
-                        <div style={styles.attentionMetricBox}>
-                          <span>ROI-P</span>
-                          <strong>{departmentRoiPoints.toLocaleString()}P</strong>
-                        </div>
+                        <MetricRow
+                          label="削減時間"
+                          value={`${departmentHoursSaved.toLocaleString()}h`}
+                          diff={hoursDiff}
+                          suffix="h"
+                        />
 
-                        <div style={styles.attentionMetricBox}>
-                          <span>削減時間</span>
-                          <strong>
-                            {Math.round(
-                              executiveStats?.hoursSaved ?? 0
-                            ).toLocaleString()}
-                            h
-                          </strong>
-                        </div>
+                        <MetricRow
+                          label="未承認"
+                          value={`${dept.pending_count}件`}
+                          diff={pendingDiff}
+                          suffix="件"
+                          reverse
+                        />
 
-                        <div style={styles.attentionMetricBox}>
-                          <span>AI信頼度</span>
-                          <strong>
-                            {Math.round(
-                              executiveStats?.averageConfidence ?? 0
-                            )}
-                            %
-                          </strong>
-                        </div>
+                        <MetricRow
+                          label="AI信頼度"
+                          value={`${departmentConfidence}%`}
+                          diff={confidenceDiff}
+                          suffix="pt"
+                        />
                       </div>
 
                       <p style={styles.attentionReason}>{dept.reason}</p>
@@ -876,13 +935,15 @@ export default function DashboardPage() {
             <Panel title="部門間評価乖離" tag="BIAS ALERT">
               {!primaryBiasAlert ? (
                 <div style={styles.emptyBox}>
-                  評価乖離アラートはありません。
+                  評価差アラートはありません。
                 </div>
               ) : (
                 <div style={styles.biasFocusCard}>
                   <div style={styles.biasFocusHeader}>
                     <div style={styles.flexItemMin}>
-                      <p style={styles.biasFocusLabel}>最重要確認ポイント</p>
+                      <p style={styles.biasFocusLabel}>
+                        評価傾向確認（良し悪し判定ではない）
+                      </p>
 
                       <h3 style={styles.biasFocusDept}>
                         {normalizeDepartmentName(primaryBiasAlert.department)} /{" "}
@@ -890,24 +951,13 @@ export default function DashboardPage() {
                       </h3>
                     </div>
 
-                    <span style={styles.biasFocusBadge}>
-                      {primaryBiasAlert.risk}
-                    </span>
+                    <span style={styles.biasFocusBadge}>他部門比較</span>
                   </div>
 
                   <div style={styles.biasFocusBody}>
-                    <div style={styles.biasMainMetric}>
-                      <span style={styles.biasMetricLabel}>全社平均との差</span>
-
-                      <strong style={styles.biasFocusDiff}>
-                        {primaryBiasAlert.diff > 0 ? "+" : ""}
-                        {primaryBiasAlert.diff}%
-                      </strong>
-                    </div>
-
                     <div style={styles.biasSubMetrics}>
                       <div style={styles.biasSubMetricBox}>
-                        <span>部門平均</span>
+                        <span>部門平均ROI-P</span>
                         <strong>
                           {Number(
                             primaryBiasAlert.department_average_roi || 0
@@ -917,7 +967,7 @@ export default function DashboardPage() {
                       </div>
 
                       <div style={styles.biasSubMetricBox}>
-                        <span>全社平均</span>
+                        <span>全社平均ROI-P</span>
                         <strong>
                           {Number(
                             primaryBiasAlert.company_average_roi || 0
@@ -927,20 +977,31 @@ export default function DashboardPage() {
                       </div>
 
                       <div style={styles.biasSubMetricBox}>
-                        <span>対象件数</span>
-                        <strong>{primaryBiasAlert.count}件</strong>
+                        <span>評価倍率</span>
+                        <strong style={styles.biasDiffCompact}>
+                          {(
+                            Number(primaryBiasAlert.department_average_roi || 0) /
+                            Math.max(
+                              Number(primaryBiasAlert.company_average_roi || 0),
+                              0.1
+                            )
+                          ).toFixed(1)}
+                          倍
+                        </strong>
                       </div>
                     </div>
                   </div>
 
                   <p style={styles.biasFocusDetail}>
-                    他部門より挑戦行動が高く評価されている状態です。
-                    成功事例の横展開候補として、内容確認を推奨します。
+                    この指標は成果評価ではなく、「他部門と比較して評価が高め・
+                    低めに出ていないか」を確認するための指標です。
+                    経営アクション部門の「要支援」「好調」とは別軸で確認します。
+                    対象件数：{primaryBiasAlert.count}件
                   </p>
 
                   <div style={styles.biasPoCNote}>
                     <strong>評価補助PoC：</strong>
-                    社員投稿・上司評価・部門平均との差分から傾向を検知。
+                    社員投稿・上司評価・部門平均との差分から評価傾向を検知。
                     AIが評価を決定するのではなく、
                     上司が確認すべき論点を補助します。
                   </div>
@@ -995,6 +1056,61 @@ export default function DashboardPage() {
         </section>
       </main>
     </AuthGuard>
+  );
+}
+
+function MetricRow({
+  label,
+  value,
+  diff,
+  suffix,
+  reverse = false,
+}: {
+  label: string;
+  value: string;
+  diff: number;
+  suffix: string;
+  reverse?: boolean;
+}) {
+  return (
+    <div style={styles.attentionMetricRow}>
+      <span style={styles.metricRowLabel}>{label}</span>
+
+      <div style={styles.metricRowBody}>
+        <strong style={styles.metricRowValue}>{value}</strong>
+        <MetricDiff value={diff} suffix={suffix} reverse={reverse} />
+      </div>
+    </div>
+  );
+}
+
+function MetricDiff({
+  value,
+  suffix,
+  reverse = false,
+}: {
+  value: number;
+  suffix: string;
+  reverse?: boolean;
+}) {
+  const diffStyle = reverse
+    ? value > 0
+      ? styles.metricDiffNegative
+      : value < 0
+      ? styles.metricDiffPositive
+      : styles.metricDiffNeutral
+    : value > 0
+    ? styles.metricDiffPositive
+    : value < 0
+    ? styles.metricDiffNegative
+    : styles.metricDiffNeutral;
+
+  return (
+    <span style={{ ...styles.metricDiff, ...diffStyle }}>
+      平均比 {value >= 0 ? "+" : ""}
+      {value.toLocaleString()}
+      {suffix}
+    </span>
   );
 }
 
@@ -1064,11 +1180,7 @@ function getConfidenceColor(score: number): CSSProperties {
 }
 
 function formatMoney(value: number) {
-  if (value >= 100000000) {
-    return `${(value / 100000000).toFixed(2)}億円`;
-  }
-
-  return `${Math.round(value / 10000).toLocaleString()}万円`;
+  return `¥${Math.round(Number(value || 0)).toLocaleString()}`;
 }
 
 function statusLabel(status: string) {
@@ -1456,17 +1568,55 @@ const styles: Record<string, CSSProperties> = {
   },
   attentionMetrics: {
     display: "grid",
-    gridTemplateColumns: "repeat(auto-fit, minmax(84px, 1fr))",
-    gap: "12px",
-    marginBottom: "16px",
+    gap: "10px",
+    margin: "12px 0 16px",
+    padding: "12px 0",
+    borderTop: "1px solid rgba(148,163,184,0.14)",
+    borderBottom: "1px solid rgba(148,163,184,0.14)",
   },
-  attentionMetricBox: {
+  attentionMetricRow: {
     minWidth: 0,
-    background: "rgba(15,23,42,0.72)",
-    border: "1px solid rgba(148,163,184,0.14)",
-    borderRadius: "16px",
-    padding: "14px",
+    display: "grid",
+    gridTemplateColumns: "88px minmax(0, 1fr)",
+    alignItems: "start",
+    gap: "12px",
+    padding: "2px 0",
+  },
+  metricRowLabel: {
+    color: "#e5e7eb",
     fontSize: "14px",
+    fontWeight: 900,
+    lineHeight: 1.35,
+    whiteSpace: "nowrap",
+  },
+  metricRowBody: {
+    minWidth: 0,
+    display: "grid",
+    gap: "3px",
+  },
+  metricRowValue: {
+    display: "block",
+    color: "#f8fafc",
+    fontSize: "18px",
+    fontWeight: 900,
+    lineHeight: 1.15,
+    whiteSpace: "nowrap",
+  },
+  metricDiff: {
+    display: "block",
+    fontSize: "12px",
+    fontWeight: 900,
+    lineHeight: 1.35,
+    whiteSpace: "nowrap",
+  },
+  metricDiffPositive: {
+    color: "#6ee7b7",
+  },
+  metricDiffNegative: {
+    color: "#fca5a5",
+  },
+  metricDiffNeutral: {
+    color: "#94a3b8",
   },
   attentionReason: {
     margin: 0,
@@ -1688,10 +1838,7 @@ const styles: Record<string, CSSProperties> = {
     flex: "0 0 auto",
   },
   biasFocusBody: {
-    display: "grid",
-    gridTemplateColumns: "minmax(150px, 0.9fr) minmax(0, 1.4fr)",
-    gap: "16px",
-    alignItems: "stretch",
+    display: "block",
     marginBottom: "18px",
   },
   biasMainMetric: {
@@ -1716,9 +1863,13 @@ const styles: Record<string, CSSProperties> = {
     fontWeight: 900,
     lineHeight: 1.1,
   },
+  biasDiffCompact: {
+    color: "#34d399",
+    fontSize: "24px",
+  },
   biasSubMetrics: {
     display: "grid",
-    gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 120px), 1fr))",
+    gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 130px), 1fr))",
     gap: "12px",
   },
   biasSubMetricBox: {

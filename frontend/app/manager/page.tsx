@@ -11,7 +11,7 @@ const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_BASE_URL ||
   "https://tech0-gen-11-step3-2-py-62.azurewebsites.net";
 
-const VALUE_PER_POINT = 100000;
+const VALUE_PER_POINT = 10000;
 
 type Post = {
   id: string;
@@ -819,7 +819,7 @@ function KpiCard({
       <div className="relative z-10 min-w-0">
         <p className="text-sm font-black text-slate-400">{title}</p>
         <p
-          className={`mt-5 break-words text-2xl font-black sm:text-3xl ${
+          className={`mt-5 whitespace-nowrap text-2xl font-black sm:text-3xl ${
             strong ? "text-emerald-300" : accent ? "text-amber-300" : "text-white"
           }`}
         >
