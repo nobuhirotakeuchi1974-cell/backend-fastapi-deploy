@@ -50,7 +50,9 @@ allow_origins = [
     "http://localhost:3000",
     "http://127.0.0.1:3000",
     "https://tech0-gen-11-step3-2-node-62.azurewebsites.net",
+    "https://backend-fastapi-deploy.vercel.app",
 ]
+
 
 vercel_origin = os.getenv("FRONTEND_ORIGIN")
 if vercel_origin:
