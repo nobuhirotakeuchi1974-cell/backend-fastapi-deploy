@@ -158,9 +158,9 @@ export default function EmployeePage() {
    const totalValue = totalPoints * VALUE_PER_POINT;
 
   return (
-    <main className="min-h-screen bg-[#071326] px-6 py-10 text-white">
-      <div className="mx-auto max-w-6xl">
-        <header className="relative overflow-hidden rounded-[28px] border border-emerald-400/20 bg-gradient-to-r from-[#0b1b33] to-[#06402f] p-8 shadow-2xl shadow-emerald-500/10">
+    <main className="min-h-screen overflow-x-hidden bg-[#071326] px-4 py-8 text-white sm:px-6 sm:py-10">
+  <div className="mx-auto max-w-6xl overflow-x-hidden">
+    <header className="relative overflow-hidden rounded-[28px] border border-emerald-400/20 bg-gradient-to-r from-[#0b1b33] to-[#06402f] p-6 shadow-2xl shadow-emerald-500/10 sm:p-8">
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(16,185,129,0.18),transparent_45%)]" />
 
           <div className="relative z-10">
@@ -168,9 +168,9 @@ export default function EmployeePage() {
               ● Employee Action
             </p>
 
-            <h1 className="text-4xl font-black">
-              今日の行動を記録する
-            </h1>
+            <h1 className="break-words text-3xl font-black leading-tight sm:text-4xl">
+  今日の行動を記録する
+</h1>
 
             <p className="mt-5 max-w-full break-words whitespace-normal leading-8 text-slate-200">
   日々の挑戦・改善・支援・学習を投稿すると、
