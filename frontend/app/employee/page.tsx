@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_BASE_URL || "https://tech0-gen-11-step3-2-py-62.azurewebsites.net";
 
-const VALUE_PER_POINT = 100000;
+const VALUE_PER_POINT = 10000;
 
 const categories = [
   { value: "challenge", label: "挑戦" },
@@ -155,7 +155,7 @@ export default function EmployeePage() {
   0
 );
 
-  const totalValue = totalPoints * VALUE_PER_POINT;
+   const totalValue = totalPoints * VALUE_PER_POINT;
 
   return (
     <main className="min-h-screen bg-[#071326] px-6 py-10 text-white">
@@ -172,10 +172,10 @@ export default function EmployeePage() {
               今日の行動を記録する
             </h1>
 
-            <p className="mt-5 max-w-4xl leading-8 text-slate-200">
-              日々の挑戦・改善・支援・学習を投稿すると、
-              上司評価を通じて人的資本価値として可視化されます。
-            </p>
+            <p className="mt-5 max-w-full break-words whitespace-normal leading-8 text-slate-200">
+  日々の挑戦・改善・支援・学習を投稿すると、
+  上司評価を通じて人的資本価値として可視化されます。
+</p>
           </div>
         </header>
 
