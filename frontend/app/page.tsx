@@ -15,10 +15,14 @@ export default function HomePage() {
             経営の力に変える。
           </h1>
 
-          <p className="mt-4 max-w-full break-words text-sm font-bold leading-7 text-slate-200 sm:text-base">
-            現場の挑戦行動を上司評価を通じてROIへ変換し、
-            経営判断と横展開につなげます。
-          </p>
+          <p className="mt-4 max-w-[34rem] text-sm font-bold leading-7 text-slate-200 sm:text-base">
+  <span className="block">
+    現場の挑戦行動を上司評価を通じて
+  </span>
+  <span className="block">
+    ROIへ変換し、経営判断と横展開につなげます。
+  </span>
+</p>
         </header>
 
         <section className="mt-5 rounded-[28px] border border-white/10 bg-[#0b1528] p-5 shadow-2xl">

@@ -627,10 +627,12 @@ export default function DashboardPage() {
               <p style={styles.kicker}>HUMAN CAPITAL OS</p>
 
               <h1 style={styles.title}>
-                現場⇔経営をつなぎ、
-                <br />
-                現場を動かす人的資本OS
-              </h1>
+  現場⇔経営をつなぎ、
+  <br />
+  現場を動かす
+  <br />
+  人的資本OS
+</h1>
 
               <p style={styles.description}>
                 挑戦行動を可視化し、上司評価・ROI換算・経営判断へ接続します。
@@ -1339,13 +1341,14 @@ const styles: Record<string, CSSProperties> = {
     lineHeight: 1.4,
   },
   cardValue: {
-    margin: "12px 0 8px",
-    fontSize: "clamp(26px, 6vw, 40px)",
-    fontWeight: 900,
-    color: "#f8fafc",
-    lineHeight: 1.1,
-    overflowWrap: "break-word",
-  },
+  margin: "12px 0 8px",
+  fontSize: "clamp(22px, 5vw, 40px)",
+  fontWeight: 900,
+  color: "#f8fafc",
+  lineHeight: 1.1,
+  whiteSpace: "nowrap",
+  overflow: "hidden",
+},
   cardSub: {
     margin: 0,
     color: "#94a3b8",
