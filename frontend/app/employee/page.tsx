@@ -158,7 +158,7 @@ export default function EmployeePage() {
    const totalValue = totalPoints * VALUE_PER_POINT;
 
   return (
-    <main className="min-h-screen overflow-x-hidden bg-[#071326] px-4 py-8 text-white sm:px-6 sm:py-10">
+    <main className="relative min-h-screen w-full max-w-full overflow-x-hidden bg-[#071326] px-4 py-8 text-white sm:px-6 sm:py-10">
   <div className="mx-auto max-w-6xl overflow-x-hidden">
     <header className="relative overflow-hidden rounded-[28px] border border-emerald-400/20 bg-gradient-to-r from-[#0b1b33] to-[#06402f] p-6 shadow-2xl shadow-emerald-500/10 sm:p-8">
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(16,185,129,0.18),transparent_45%)]" />
