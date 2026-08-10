@@ -8,9 +8,17 @@ import {
   type Message,
   type Phase,
   type SessionStatus,
-  generateInitialMessage,
-  generateMockResponse,
 } from "./mockEngine";
+import {
+  type HcosDialogueState,
+  type HcosActiveSession,
+  type DialogueMessage,
+  DEFAULT_DIALOGUE_STATE,
+  STORAGE_KEY_DRAFT,
+  STORAGE_KEY_ACTIVE,
+  STORAGE_KEY_NEXT_ACTION,
+  callHcosAiDialogue,
+} from "./hcosAiClient";
 
 // ── 定数 ─────────────────────────────────────────
 
@@ -225,22 +233,16 @@ export default function SessionDraftPage() {
   const [sessionData, setSessionData] = useState<{ selectedState: string; eventText: string } | null>(null);
   const [dataLoaded, setDataLoaded] = useState(false);
 
-  // 会話状態
+  // 会話状態 — 仕様書 §32 (turnInPhase は本番 AI 制御では使用しない)
   const [messages, setMessages] = useState<Message[]>([]);
   const [phase, setPhase] = useState<Phase>("RECEIVE");
-  const [turnInPhase, setTurnInPhase] = useState(0);
-  const [emotionalIntensity, setEmotionalIntensity] = useState<EmotionalIntensity>("medium");
-
-  // 思考整理の内部状態
-  const [focusHypothesis, setFocusHypothesis] = useState<string | null>(null);
-  const [focusConfirmed, setFocusConfirmed] = useState(false);
-  const [nextActionCandidate, setNextActionCandidate] = useState<string | null>(null);
-  const [nextActionConfirmed, setNextActionConfirmed] = useState(false);
-  const [sessionStatus, setSessionStatus] = useState<SessionStatus>("active");
+  const [dialogueState, setDialogueState] = useState<HcosDialogueState>(DEFAULT_DIALOGUE_STATE);
+  const [sessionId] = useState(() => crypto.randomUUID());
 
   // UI状態
   const [userInput, setUserInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [showCloseConfirm, setShowCloseConfirm] = useState(false);
   const [inputFocused, setInputFocused] = useState(false);
 
@@ -249,28 +251,47 @@ export default function SessionDraftPage() {
   // ── 初期化: sessionStorage から読み込み ─────────
   useEffect(() => {
     try {
-      const raw = sessionStorage.getItem("hcos_session_draft");
-      if (!raw) {
+      // まず hcos_active_session を確認（リロード復元）
+      const rawActive = sessionStorage.getItem(STORAGE_KEY_ACTIVE);
+      if (rawActive) {
+        const active = JSON.parse(rawActive) as HcosActiveSession;
+        setSessionData({
+          selectedState: active.selectedState,
+          eventText: active.initialEventText,
+        });
+        setPhase(active.phase);
+        setDialogueState(active.state);
+        // API メッセージ形式 → UI メッセージ形式に変換
+        const uiMessages: Message[] = active.messages.map((m, i) => ({
+          id: String(i),
+          role: m.role === "assistant" ? "ai" : "user",
+          content: m.content,
+        }));
+        setMessages(uiMessages);
         setDataLoaded(true);
         return;
       }
-      const draft = JSON.parse(raw) as { state?: string; eventText?: string };
+
+      // 初回: hcos_session_draft を読み込む
+      const rawDraft = sessionStorage.getItem(STORAGE_KEY_DRAFT);
+      if (!rawDraft) {
+        setDataLoaded(true);
+        return;
+      }
+      const draft = JSON.parse(rawDraft) as { state?: string; eventText?: string };
       const state = draft.state ?? "";
       const eventText = draft.eventText ?? "";
-
       setSessionData({ selectedState: state, eventText });
 
+      // 感情強度の初期値を selectedState から推定（会話が進めば AI が更新）
       const intensity: EmotionalIntensity = ["irritated", "down", "anxious"].includes(state)
         ? "high"
         : ["uncertain", "tired"].includes(state)
         ? "medium"
         : "low";
-      setEmotionalIntensity(intensity);
-
-      const firstMsg = generateInitialMessage(state, intensity);
-      setMessages([{ id: crypto.randomUUID(), role: "ai", content: firstMsg }]);
+      setDialogueState({ ...DEFAULT_DIALOGUE_STATE, emotionalIntensity: intensity });
     } catch {
-      // JSON parse failure — treat as no data
+      // JSON parse 失敗はそのまま続行
     }
     setDataLoaded(true);
   }, []);
@@ -280,65 +301,117 @@ export default function SessionDraftPage() {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, isLoading]);
 
-  // ── 完了時: sessionStorage に保存 ────────────────
+  // ── hcos_active_session を常に最新に保つ ────────
   useEffect(() => {
-    if (sessionStatus === "completed" && nextActionConfirmed && nextActionCandidate) {
-      sessionStorage.setItem(
-        "hcos_next_action",
-        JSON.stringify({ action: nextActionCandidate, createdAt: new Date().toISOString() })
-      );
+    if (!sessionData || messages.length === 0) return;
+    const apiMessages: DialogueMessage[] = messages.map((m) => ({
+      role: m.role === "ai" ? "assistant" : "user",
+      content: m.content,
+    }));
+    const active: HcosActiveSession = {
+      sessionId,
+      selectedState: sessionData.selectedState,
+      initialEventText: sessionData.eventText,
+      phase,
+      messages: apiMessages,
+      state: dialogueState,
+    };
+    try {
+      sessionStorage.setItem(STORAGE_KEY_ACTIVE, JSON.stringify(active));
+    } catch {
+      // storage quota などは無視
     }
-  }, [sessionStatus, nextActionConfirmed, nextActionCandidate]);
+  }, [messages, phase, dialogueState, sessionData, sessionId]);
+
+  // ── 完了時: hcos_next_action に保存 ─────────────
+  useEffect(() => {
+    if (
+      dialogueState.sessionStatus === "completed" &&
+      dialogueState.nextAction.confirmed &&
+      dialogueState.nextAction.candidate
+    ) {
+      try {
+        sessionStorage.setItem(
+          STORAGE_KEY_NEXT_ACTION,
+          JSON.stringify({
+            action: dialogueState.nextAction.candidate,
+            createdAt: new Date().toISOString(),
+          })
+        );
+      } catch {
+        // storage quota などは無視
+      }
+    }
+  }, [dialogueState]);
 
   // ── 送信 ─────────────────────────────────────────
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     const trimmed = userInput.trim();
-    if (!trimmed || isLoading || sessionStatus !== "active") return;
+    if (!trimmed || isLoading || dialogueState.sessionStatus !== "active") return;
 
-    // 送信時点の状態をキャプチャ（closure stale 回避）
-    const capturedPhase = phase;
-    const capturedTurn = turnInPhase;
-    const capturedFocusHypothesis = focusHypothesis;
-    const capturedFocusConfirmed = focusConfirmed;
-    const capturedNextActionCandidate = nextActionCandidate;
+    setError(null);
 
     const userMsg: Message = { id: crypto.randomUUID(), role: "user", content: trimmed };
-    setMessages((prev) => [...prev, userMsg]);
+    const nextMessages = [...messages, userMsg];
+    setMessages(nextMessages);
     setUserInput("");
     setIsLoading(true);
 
-    // 実API接続時はここを非同期APIコールに差し替える
-    setTimeout(() => {
-      const result = generateMockResponse(trimmed, {
+    try {
+      // UI messages → API messages 形式に変換
+      const apiMessages: DialogueMessage[] = nextMessages.map((m) => ({
+        role: m.role === "ai" ? "assistant" : "user",
+        content: m.content,
+      }));
+
+      const res = await callHcosAiDialogue({
+        sessionId,
         selectedState: sessionData?.selectedState ?? "",
-        phase: capturedPhase,
-        turnInPhase: capturedTurn,
-        emotionalIntensity,
-        focusHypothesis: capturedFocusHypothesis,
-        focusConfirmed: capturedFocusConfirmed,
-        nextActionCandidate: capturedNextActionCandidate,
+        initialEventText: sessionData?.eventText ?? "",
+        phase,
+        messages: apiMessages,
+        state: dialogueState,
       });
 
-      const aiMsg: Message = { id: crypto.randomUUID(), role: "ai", content: result.content };
+      const aiMsg: Message = { id: crypto.randomUUID(), role: "ai", content: res.message };
       setMessages((prev) => [...prev, aiMsg]);
 
-      // フェーズ遷移
-      if (result.phaseChanged) {
-        setPhase(result.nextPhase);
-        setTurnInPhase(0);
-      } else {
-        setTurnInPhase((prev) => prev + 1);
-      }
-
-      // 状態更新
-      if (result.updates.focusHypothesis) setFocusHypothesis(result.updates.focusHypothesis);
-      if (result.updates.focusConfirmed !== undefined) setFocusConfirmed(result.updates.focusConfirmed);
-      if (result.updates.nextActionCandidate) setNextActionCandidate(result.updates.nextActionCandidate);
-      if (result.updates.nextActionConfirmed) setNextActionConfirmed(true);
-      if (result.updates.sessionStatus) setSessionStatus(result.updates.sessionStatus);
-
+      // フェーズ・内部状態を更新
+      setPhase(res.phase);
+      setDialogueState({
+        facts: [
+          ...dialogueState.facts,
+          ...res.newInformation.facts.filter((f) => !dialogueState.facts.includes(f)),
+        ],
+        interpretations: [
+          ...dialogueState.interpretations,
+          ...res.newInformation.interpretations.filter((i) => !dialogueState.interpretations.includes(i)),
+        ],
+        emotions: [
+          ...dialogueState.emotions,
+          ...res.newInformation.emotions.filter((e) => !dialogueState.emotions.includes(e)),
+        ],
+        selfJudgments: [
+          ...dialogueState.selfJudgments,
+          ...res.newInformation.selfJudgments.filter((s) => !dialogueState.selfJudgments.includes(s)),
+        ],
+        focus: res.focus,
+        controllable: res.controllable,
+        options: res.options,
+        nextAction: res.nextAction,
+        emotionalIntensity: res.emotionalIntensity,
+        sessionStatus: res.sessionStatus,
+      });
+    } catch (err) {
+      const msg =
+        err instanceof Error
+          ? err.message
+          : "うまく接続できませんでした。もう一度試してください。";
+      setError(msg);
+      // ユーザーメッセージはそのまま残し再送できる状態にする
+    } finally {
       setIsLoading(false);
-    }, 750);
+    }
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -349,7 +422,9 @@ export default function SessionDraftPage() {
   };
 
   const handleCloseConfirm = (yes: boolean) => {
-    if (yes) setSessionStatus("closed_without_action");
+    if (yes) {
+      setDialogueState((prev) => ({ ...prev, sessionStatus: "closed_without_action" }));
+    }
     setShowCloseConfirm(false);
   };
 
@@ -387,6 +462,8 @@ export default function SessionDraftPage() {
       ? sessionData.eventText.substring(0, 55) + "…"
       : sessionData.eventText;
 
+  const sessionStatus = dialogueState.sessionStatus;
+  const nextActionCandidate = dialogueState.nextAction.candidate;
   const isSubmittable = userInput.trim().length > 0 && !isLoading && sessionStatus === "active";
 
   return (
@@ -455,6 +532,11 @@ export default function SessionDraftPage() {
             <MessageItem key={msg.id} message={msg} />
           ))}
           {isLoading && <LoadingDots />}
+          {error && (
+            <p style={{ fontSize: 13, color: "#f87171", marginBottom: 16, lineHeight: 1.7 }}>
+              {error}
+            </p>
+          )}
           <div ref={messagesEndRef} />
         </div>
 

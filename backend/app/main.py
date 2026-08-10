@@ -15,6 +15,7 @@ load_dotenv()
 from app.auth import create_access_token
 from app.database import Base, engine, SessionLocal
 from app.routers import analytics, posts
+from app.routers import ai_dialogue
 from app.schemas import LoginRequest
 
 logger = logging.getLogger("human-capital-os")
@@ -186,6 +187,8 @@ app.include_router(
     prefix="/api/analytics",
     tags=["analytics"],
 )
+
+app.include_router(ai_dialogue.router)
 
 
 @app.get("/debug/db-structure")
