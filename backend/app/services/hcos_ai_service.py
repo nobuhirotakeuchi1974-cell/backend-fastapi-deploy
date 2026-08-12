@@ -28,13 +28,14 @@ from app.schemas.ai_dialogue import (
 logger = logging.getLogger("human-capital-os")
 
 # フェーズ遷移の許可マップ — 仕様書 §29-C
+# EXPLORE/DECIDE → FOCUS 後退を許可（focus仮説否定時の回帰用）
 _ALLOWED_NEXT_PHASES: dict[Phase, set[Phase]] = {
     "RECEIVE":   {"RECEIVE", "UNTANGLE"},
     "UNTANGLE":  {"UNTANGLE", "FOCUS", "RECEIVE"},
     "FOCUS":     {"FOCUS", "UNTANGLE", "BOUNDARY"},
     "BOUNDARY":  {"BOUNDARY", "FOCUS", "EXPLORE"},
-    "EXPLORE":   {"EXPLORE", "BOUNDARY", "DECIDE"},
-    "DECIDE":    {"DECIDE", "EXPLORE"},
+    "EXPLORE":   {"EXPLORE", "BOUNDARY", "DECIDE", "FOCUS"},
+    "DECIDE":    {"DECIDE", "EXPLORE", "FOCUS"},
 }
 
 # message 文字数上限 — 仕様書 §29-E
@@ -93,11 +94,18 @@ def _validate_hcos_rules(
     AI 生出力を信用せず、仕様違反を修正する。
     """
 
-    # A. nextAction.confirmed はユーザーが候補を述べた後、かつ確認した場合のみ
+    # A. candidate初生成・変更ターンでは confirmed=true を禁止（前ターンと同一candidateの次ターン以降のみ許可）
     prev_state = req.state
     prev_candidate = prev_state.nextAction.candidate if prev_state else None
-    if raw.nextAction.confirmed and not prev_candidate:
-        logger.warning("hcos_rule_violation: nextAction.confirmed=true without prior candidate — resetting")
+    if raw.nextAction.confirmed and raw.nextAction.candidate != prev_candidate:
+        logger.warning(
+            "hcos_rule_violation: nextAction.confirmed=true on candidate generation/change turn — resetting"
+        )
+        raw.nextAction.confirmed = False
+
+    # H. nextAction.confirmed=true には今回出力に candidate が必要
+    if raw.nextAction.confirmed and not raw.nextAction.candidate:
+        logger.warning("hcos_rule_violation: nextAction.confirmed=true with empty candidate — resetting confirmed")
         raw.nextAction.confirmed = False
 
     # B. sessionStatus=completed は focus.confirmed AND nextAction.confirmed の場合のみ
@@ -107,6 +115,14 @@ def _validate_hcos_rules(
                 "hcos_rule_violation: sessionStatus=completed without focus.confirmed and nextAction.confirmed — resetting to active"
             )
             raw.sessionStatus = "active"
+
+    # F. BOUNDARY/EXPLORE/DECIDE は focus.confirmed=true が必要（Rule C より先に実行）
+    if raw.phase in {"BOUNDARY", "EXPLORE", "DECIDE"} and not raw.focus.confirmed:
+        logger.warning(
+            "hcos_rule_violation: phase %s requires focus.confirmed=true — reverting to FOCUS",
+            raw.phase,
+        )
+        raw.phase = "FOCUS"
 
     # C. 極端なフェーズ飛び級を防ぐ
     current_phase: Phase = req.phase
@@ -120,6 +136,13 @@ def _validate_hcos_rules(
             current_phase,
         )
         raw.phase = current_phase
+
+    # G. DECIDE フェーズには nextAction.candidate が必要
+    if raw.phase == "DECIDE" and not raw.nextAction.candidate:
+        logger.warning(
+            "hcos_rule_violation: DECIDE phase without nextAction.candidate — reverting to EXPLORE"
+        )
+        raw.phase = "EXPLORE"
 
     # D. options は最大 3 つ
     if len(raw.options) > 3:

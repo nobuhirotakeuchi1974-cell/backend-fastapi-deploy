@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
@@ -12,6 +12,7 @@ import {
 import {
   type HcosDialogueState,
   type HcosActiveSession,
+  type HcosAiResponse,
   type DialogueMessage,
   DEFAULT_DIALOGUE_STATE,
   STORAGE_KEY_DRAFT,
@@ -247,6 +248,8 @@ export default function SessionDraftPage() {
   const [inputFocused, setInputFocused] = useState(false);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  // React Strict Mode による二重実行を防ぐ
+  const initialCallFiredRef = useRef(false);
 
   // ── 初期化: sessionStorage から読み込み ─────────
   useEffect(() => {
@@ -300,6 +303,70 @@ export default function SessionDraftPage() {
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, isLoading]);
+
+  // ── AIレスポンスを内部状態へ反映（初回・通常ターン共通）──────────
+  const applyAiResponse = useCallback(
+    (res: HcosAiResponse, prevState: HcosDialogueState) => {
+      setPhase(res.phase);
+      setDialogueState({
+        facts: [
+          ...prevState.facts,
+          ...res.newInformation.facts.filter((f) => !prevState.facts.includes(f)),
+        ],
+        interpretations: [
+          ...prevState.interpretations,
+          ...res.newInformation.interpretations.filter((i) => !prevState.interpretations.includes(i)),
+        ],
+        emotions: [
+          ...prevState.emotions,
+          ...res.newInformation.emotions.filter((e) => !prevState.emotions.includes(e)),
+        ],
+        selfJudgments: [
+          ...prevState.selfJudgments,
+          ...res.newInformation.selfJudgments.filter((s) => !prevState.selfJudgments.includes(s)),
+        ],
+        focus: res.focus,
+        controllable: res.controllable,
+        options: res.options,
+        nextAction: res.nextAction,
+        emotionalIntensity: res.emotionalIntensity,
+        sessionStatus: res.sessionStatus,
+      });
+    },
+    []
+  );
+
+  // ── 初回AI呼び出し: draft読み込み完了 & messages空のときAIから会話開始 ──
+  useEffect(() => {
+    if (!dataLoaded || !sessionData || messages.length > 0) return;
+    if (initialCallFiredRef.current) return;
+    initialCallFiredRef.current = true;
+
+    setError(null);
+    setIsLoading(true);
+    callHcosAiDialogue({
+      sessionId,
+      selectedState: sessionData.selectedState,
+      initialEventText: sessionData.eventText,
+      phase,
+      messages: [],
+      state: dialogueState,
+    })
+      .then((res) => {
+        setMessages([{ id: crypto.randomUUID(), role: "ai", content: res.message }]);
+        applyAiResponse(res, dialogueState);
+      })
+      .catch((err) => {
+        setError(
+          err instanceof Error
+            ? err.message
+            : "うまく接続できませんでした。もう一度試してください。"
+        );
+      })
+      .finally(() => setIsLoading(false));
+  // dataLoaded・sessionData が揃った瞬間に一度だけ実行。ref ガードで再実行を防ぐ
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dataLoaded, sessionData]);
 
   // ── hcos_active_session を常に最新に保つ ────────
   useEffect(() => {
@@ -377,31 +444,7 @@ export default function SessionDraftPage() {
       setMessages((prev) => [...prev, aiMsg]);
 
       // フェーズ・内部状態を更新
-      setPhase(res.phase);
-      setDialogueState({
-        facts: [
-          ...dialogueState.facts,
-          ...res.newInformation.facts.filter((f) => !dialogueState.facts.includes(f)),
-        ],
-        interpretations: [
-          ...dialogueState.interpretations,
-          ...res.newInformation.interpretations.filter((i) => !dialogueState.interpretations.includes(i)),
-        ],
-        emotions: [
-          ...dialogueState.emotions,
-          ...res.newInformation.emotions.filter((e) => !dialogueState.emotions.includes(e)),
-        ],
-        selfJudgments: [
-          ...dialogueState.selfJudgments,
-          ...res.newInformation.selfJudgments.filter((s) => !dialogueState.selfJudgments.includes(s)),
-        ],
-        focus: res.focus,
-        controllable: res.controllable,
-        options: res.options,
-        nextAction: res.nextAction,
-        emotionalIntensity: res.emotionalIntensity,
-        sessionStatus: res.sessionStatus,
-      });
+      applyAiResponse(res, dialogueState);
     } catch (err) {
       const msg =
         err instanceof Error
