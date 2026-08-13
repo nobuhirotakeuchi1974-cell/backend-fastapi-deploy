@@ -32,6 +32,12 @@ type NextActionData = {
   status?: "active" | "completed";
 };
 
+type ManagerRequestPreview = {
+  action: string;
+  managerFeedback?: string | null;
+  status: string;
+};
+
 function toLocalDateStr(date: Date): string {
   const y = date.getFullYear();
   const m = String(date.getMonth() + 1).padStart(2, "0");
@@ -98,6 +104,20 @@ export default function EmployeePage() {
     } catch {
       // ignore
     }
+    return null;
+  });
+
+  const [managerRequest] = useState<ManagerRequestPreview | null>(() => {
+    if (typeof window === "undefined") return null;
+    try {
+      const actRaw = window.sessionStorage.getItem("hcos_next_action");
+      const reqRaw = window.sessionStorage.getItem("hcos_manager_requests");
+      if (actRaw && reqRaw) {
+        const act = JSON.parse(actRaw) as { action?: string };
+        const reqs = JSON.parse(reqRaw) as ManagerRequestPreview[];
+        if (act.action) return reqs.find((r) => r.action === act.action) ?? null;
+      }
+    } catch { /* ignore */ }
     return null;
   });
 
@@ -439,6 +459,51 @@ export default function EmployeePage() {
                 </div>
               );
             })()}
+            {managerRequest?.managerFeedback && (
+              <div
+                style={{
+                  marginTop: 14,
+                  paddingTop: 14,
+                  borderTop: "1px solid rgba(255,255,255,0.07)",
+                }}
+              >
+                <p
+                  style={{
+                    fontSize: 10,
+                    color: "#4e6a86",
+                    marginBottom: 5,
+                    letterSpacing: "0.06em",
+                    textTransform: "uppercase",
+                  }}
+                >
+                  上司からのフィードバック
+                </p>
+                <p style={{ fontSize: 12, color: "#7a90a8", lineHeight: 1.7 }}>
+                  {managerRequest.managerFeedback}
+                </p>
+              </div>
+            )}
+            <div style={{ marginTop: 14 }}>
+              <button
+                type="button"
+                onClick={() => router.push("/employee/share")}
+                style={{
+                  width: "100%",
+                  padding: "9px 12px",
+                  borderRadius: 8,
+                  border: "1px solid rgba(255,255,255,0.08)",
+                  background: "transparent",
+                  color: "#3a5470",
+                  fontSize: 11,
+                  fontWeight: 500,
+                  cursor: "pointer",
+                  textAlign: "center",
+                  letterSpacing: "0.04em",
+                }}
+              >
+                上司に相談する
+              </button>
+            </div>
           </div>
         )}
 

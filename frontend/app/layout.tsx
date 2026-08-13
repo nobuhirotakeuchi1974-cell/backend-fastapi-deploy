@@ -109,6 +109,7 @@ export default function RootLayout({
               >
                 <NavItem href="/" label="トップ" />
                 <NavItem href="/manager" label="上司評価" />
+                <NavItem href="/manager/support" label="上司支援" />
                 <NavItem href="/dashboard" label="ダッシュボード" />
               </nav>
             </div>
