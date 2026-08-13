@@ -25,6 +25,33 @@ type StateGroup = {
   options: StateOption[];
 };
 
+type NextActionData = {
+  action: string;
+  createdAt: string;
+  deadline?: string;
+};
+
+function toLocalDateStr(date: Date): string {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, "0");
+  const d = String(date.getDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
+}
+
+function formatDeadlineLabel(deadline: string): string {
+  const now = new Date();
+  const todayStr = toLocalDateStr(now);
+  const tomorrow = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
+  const tomorrowStr = toLocalDateStr(tomorrow);
+  if (deadline === todayStr) return "今日";
+  if (deadline === tomorrowStr) return "明日";
+  const parts = deadline.split("-");
+  if (parts.length === 3) {
+    return `${parseInt(parts[1], 10)}月${parseInt(parts[2], 10)}日`;
+  }
+  return deadline;
+}
+
 const STATE_GROUPS: StateGroup[] = [
   {
     groupLabel: "今の状態",
@@ -50,6 +77,20 @@ export default function EmployeePage() {
   const router = useRouter();
   const [selected, setSelected] = useState<string | null>(null);
   const [hoveredId, setHoveredId] = useState<string | null>(null);
+  // sessionStorage はクライアント専用のため SSR ガードつき lazy initializer で読む
+  const [prevAction] = useState<NextActionData | null>(() => {
+    if (typeof window === "undefined") return null;
+    try {
+      const raw = window.sessionStorage.getItem("hcos_next_action");
+      if (raw) {
+        const parsed = JSON.parse(raw) as NextActionData;
+        if (parsed.action) return parsed;
+      }
+    } catch {
+      // ignore
+    }
+    return null;
+  });
 
   const handleNext = () => {
     if (!selected) return;
@@ -284,38 +325,51 @@ export default function EmployeePage() {
           {selected ? "少し整理する" : "状態を選んでください"}
         </button>
 
-        {/* TODO: API接続後に動的取得 */}
-        <div
-          style={{
-            marginTop: 40,
-            padding: "14px 18px",
-            borderRadius: 12,
-            border: "1px solid rgba(255,255,255,0.09)",
-            background: "rgba(255,255,255,0.03)",
-          }}
-        >
-          <p
+        {prevAction && (
+          <div
             style={{
-              fontSize: 10,
-              color: "#4e6a86",
-              marginBottom: 6,
-              letterSpacing: "0.06em",
-              textTransform: "uppercase",
+              marginTop: 40,
+              padding: "14px 18px",
+              borderRadius: 12,
+              border: "1px solid rgba(255,255,255,0.09)",
+              background: "rgba(255,255,255,0.03)",
             }}
           >
-            前回決めた次の一歩
-          </p>
-          <p
-            style={{
-              fontSize: 13,
-              color: "#607d97",
-              fontWeight: 500,
-              lineHeight: 1.5,
-            }}
-          >
-            「上司に10分だけ相談する」
-          </p>
-        </div>
+            <p
+              style={{
+                fontSize: 10,
+                color: "#4e6a86",
+                marginBottom: 6,
+                letterSpacing: "0.06em",
+                textTransform: "uppercase",
+              }}
+            >
+              前回決めた次の一歩
+            </p>
+            <p
+              style={{
+                fontSize: 13,
+                color: "#607d97",
+                fontWeight: 500,
+                lineHeight: 1.5,
+              }}
+            >
+              「{prevAction.action}」
+            </p>
+            {prevAction.deadline && (
+              <p
+                style={{
+                  fontSize: 11,
+                  color: "#3a5470",
+                  marginTop: 5,
+                  lineHeight: 1.4,
+                }}
+              >
+                期限：{formatDeadlineLabel(prevAction.deadline)}
+              </p>
+            )}
+          </div>
+        )}
 
         {/* フッターコピー */}
         <footer style={{ marginTop: 48, textAlign: "center" }}>
