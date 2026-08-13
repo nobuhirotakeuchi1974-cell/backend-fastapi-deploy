@@ -36,6 +36,17 @@ type ManagerRequestPreview = {
   action: string;
   managerFeedback?: string | null;
   status: string;
+  managementAction?: "support" | "connect_department" | "pass";
+  managementComment?: string;
+};
+
+const MGMT_ACTION_LABELS: Record<
+  "support" | "connect_department" | "pass",
+  string
+> = {
+  support: "支援します",
+  connect_department: "担当部署につなぎます",
+  pass: "今回は見送ります",
 };
 
 function toLocalDateStr(date: Date): string {
@@ -481,6 +492,43 @@ export default function EmployeePage() {
                 <p style={{ fontSize: 12, color: "#7a90a8", lineHeight: 1.7 }}>
                   {managerRequest.managerFeedback}
                 </p>
+              </div>
+            )}
+            {managerRequest?.managementAction && (
+              <div
+                style={{
+                  marginTop: 14,
+                  paddingTop: 14,
+                  borderTop: "1px solid rgba(165,180,252,0.12)",
+                }}
+              >
+                <p
+                  style={{
+                    fontSize: 10,
+                    color: "#6366f1",
+                    marginBottom: 5,
+                    letterSpacing: "0.06em",
+                    textTransform: "uppercase",
+                  }}
+                >
+                  経営からの反応
+                </p>
+                <p
+                  style={{
+                    fontSize: 12,
+                    color: "#a5b4fc",
+                    fontWeight: 600,
+                    lineHeight: 1.6,
+                    marginBottom: managerRequest.managementComment ? 5 : 0,
+                  }}
+                >
+                  {MGMT_ACTION_LABELS[managerRequest.managementAction]}
+                </p>
+                {managerRequest.managementComment && (
+                  <p style={{ fontSize: 12, color: "#7a90a8", lineHeight: 1.7 }}>
+                    {managerRequest.managementComment}
+                  </p>
+                )}
               </div>
             )}
             <div style={{ marginTop: 14 }}>

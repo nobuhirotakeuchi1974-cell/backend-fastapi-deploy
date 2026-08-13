@@ -13,15 +13,19 @@ type ManagerRequest = {
   deadline?: string;
   supportType: string;
   message: string;
-  status: "support_requested" | "feedback_sent" | "sent_to_management";
+  status: "support_requested" | "feedback_sent" | "sent_to_management" | "management_responded";
   managerFeedback: string | null;
   createdAt: string;
+  managementAction?: "support" | "connect_department" | "pass";
+  managementComment?: string;
+  managementRespondedAt?: string;
 };
 
 const STATUS_LABELS: Record<ManagerRequest["status"], string> = {
   support_requested: "支援待ち",
   feedback_sent: "フィードバック済み",
   sent_to_management: "経営共有済み",
+  management_responded: "経営回答済み",
 };
 
 const STATUS_COLORS: Record<ManagerRequest["status"], { bg: string; color: string }> = {
@@ -37,6 +41,10 @@ const STATUS_COLORS: Record<ManagerRequest["status"], { bg: string; color: strin
     bg: "rgba(99,102,241,0.15)",
     color: "#a5b4fc",
   },
+  management_responded: {
+    bg: "rgba(165,180,252,0.15)",
+    color: "#c7d2fe",
+  },
 };
 
 const SUPPORT_TYPE_LABELS: Record<string, string> = {
@@ -44,6 +52,15 @@ const SUPPORT_TYPE_LABELS: Record<string, string> = {
   info: "判断材料がほしい",
   cooperation: "協力してほしい",
   escalate: "経営にも提案したい",
+};
+
+const MANAGEMENT_ACTION_LABELS: Record<
+  "support" | "connect_department" | "pass",
+  string
+> = {
+  support: "支援します",
+  connect_department: "担当部署につなぎます",
+  pass: "今回は見送ります",
 };
 
 function toLocalDateString(date: Date): string {
@@ -347,6 +364,53 @@ export default function ManagerSupportPage() {
                     >
                       {req.managerFeedback}
                     </p>
+                  </div>
+                )}
+
+                {/* 経営からの回答（managementActionが存在する場合のみ表示） */}
+                {req.managementAction && (
+                  <div
+                    style={{
+                      marginBottom: 14,
+                      padding: "12px 14px",
+                      borderRadius: 9,
+                      background: "rgba(99,102,241,0.06)",
+                      border: "1px solid rgba(165,180,252,0.20)",
+                    }}
+                  >
+                    <p
+                      style={{
+                        fontSize: 10,
+                        color: "#818cf8",
+                        marginBottom: 5,
+                        letterSpacing: "0.06em",
+                        textTransform: "uppercase",
+                      }}
+                    >
+                      経営からの回答
+                    </p>
+                    <p
+                      style={{
+                        fontSize: 13,
+                        color: "#c7d2fe",
+                        fontWeight: 600,
+                        lineHeight: 1.5,
+                        marginBottom: req.managementComment ? 6 : 0,
+                      }}
+                    >
+                      {MANAGEMENT_ACTION_LABELS[req.managementAction]}
+                    </p>
+                    {req.managementComment && (
+                      <p
+                        style={{
+                          fontSize: 12,
+                          color: "#94a3b8",
+                          lineHeight: 1.75,
+                        }}
+                      >
+                        {req.managementComment}
+                      </p>
+                    )}
                   </div>
                 )}
 
