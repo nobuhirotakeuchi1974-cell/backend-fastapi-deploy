@@ -29,6 +29,7 @@ type NextActionData = {
   action: string;
   createdAt: string;
   deadline?: string;
+  status?: "active" | "completed";
 };
 
 function toLocalDateStr(date: Date): string {
@@ -50,6 +51,14 @@ function formatDeadlineLabel(deadline: string): string {
     return `${parseInt(parts[1], 10)}月${parseInt(parts[2], 10)}日`;
   }
   return deadline;
+}
+
+function getDeadlineStatus(deadline?: string): "none" | "before" | "today" | "overdue" {
+  if (!deadline) return "none";
+  const todayStr = toLocalDateStr(new Date());
+  if (deadline > todayStr) return "before";
+  if (deadline === todayStr) return "today";
+  return "overdue";
 }
 
 const STATE_GROUPS: StateGroup[] = [
@@ -325,7 +334,7 @@ export default function EmployeePage() {
           {selected ? "少し整理する" : "状態を選んでください"}
         </button>
 
-        {prevAction && (
+        {prevAction && prevAction.status !== "completed" && (
           <div
             style={{
               marginTop: 40,
@@ -368,6 +377,68 @@ export default function EmployeePage() {
                 期限：{formatDeadlineLabel(prevAction.deadline)}
               </p>
             )}
+            {(() => {
+              const ds = getDeadlineStatus(prevAction.deadline);
+              if (ds !== "today" && ds !== "overdue") return null;
+              return (
+                <div
+                  style={{
+                    marginTop: 14,
+                    paddingTop: 14,
+                    borderTop: "1px solid rgba(255,255,255,0.07)",
+                  }}
+                >
+                  <p
+                    style={{
+                      fontSize: 12,
+                      color: "#7a90a8",
+                      marginBottom: 12,
+                      lineHeight: 1.6,
+                    }}
+                  >
+                    {ds === "today"
+                      ? "この一歩、どうでしたか？"
+                      : "この一歩、どうなりましたか？"}
+                  </p>
+                  <div style={{ display: "flex", gap: 8 }}>
+                    <button
+                      type="button"
+                      onClick={() => router.push("/employee/reflect?result=done")}
+                      style={{
+                        flex: 1,
+                        padding: "10px 12px",
+                        borderRadius: 9,
+                        border: "1px solid rgba(16,185,129,0.35)",
+                        background: "rgba(16,185,129,0.08)",
+                        color: "#6ee7b7",
+                        fontSize: 13,
+                        fontWeight: 600,
+                        cursor: "pointer",
+                      }}
+                    >
+                      できた
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => router.push("/employee/reflect?result=notyet")}
+                      style={{
+                        flex: 1,
+                        padding: "10px 12px",
+                        borderRadius: 9,
+                        border: "1px solid rgba(255,255,255,0.13)",
+                        background: "rgba(255,255,255,0.04)",
+                        color: "#94a3b8",
+                        fontSize: 13,
+                        fontWeight: 600,
+                        cursor: "pointer",
+                      }}
+                    >
+                      まだできていない
+                    </button>
+                  </div>
+                </div>
+              );
+            })()}
           </div>
         )}
 
