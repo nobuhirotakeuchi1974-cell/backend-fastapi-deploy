@@ -107,11 +107,9 @@ export default function RootLayout({
                   gap: 10,
                 }}
               >
-                <NavItem href="/" label="トップ" />
-                <NavItem href="/manager" label="上司評価" />
-                <NavItem href="/manager/support" label="上司支援" />
-                <NavItem href="/management/support" label="経営支援" />
-                <NavItem href="/dashboard" label="ダッシュボード" />
+                <NavItem href="/employee" label="社員" isActive={pathname.startsWith("/employee")} />
+                <NavItem href="/manager/support" label="上司支援" isActive={pathname === "/manager/support"} />
+                <NavItem href="/management/support" label="経営支援" isActive={pathname === "/management/support"} />
               </nav>
             </div>
           </header>
@@ -126,9 +124,11 @@ export default function RootLayout({
 function NavItem({
   href,
   label,
+  isActive,
 }: {
   href: string;
   label: string;
+  isActive?: boolean;
 }) {
   return (
     <Link
@@ -140,11 +140,15 @@ function NavItem({
         padding: "10px 18px",
         borderRadius: 16,
         textDecoration: "none",
-        color: "#ffffff",
+        color: isActive ? "#6ee7b7" : "#ffffff",
         fontSize: 14,
         fontWeight: 900,
-        border: "1px solid rgba(255,255,255,0.10)",
-        background: "rgba(255,255,255,0.05)",
+        border: isActive
+          ? "1px solid rgba(16,185,129,0.45)"
+          : "1px solid rgba(255,255,255,0.10)",
+        background: isActive
+          ? "rgba(16,185,129,0.12)"
+          : "rgba(255,255,255,0.05)",
         boxShadow:
           "inset 0 0 0 1px rgba(255,255,255,0.02), 0 4px 14px rgba(0,0,0,0.25)",
         transition:
@@ -152,6 +156,7 @@ function NavItem({
         whiteSpace: "nowrap",
       }}
       onMouseEnter={(e) => {
+        if (isActive) return;
         e.currentTarget.style.transform = "translateY(-2px)";
         e.currentTarget.style.background =
           "linear-gradient(135deg, rgba(34,211,238,0.22), rgba(16,185,129,0.14))";
@@ -161,6 +166,7 @@ function NavItem({
         e.currentTarget.style.color = "#67e8f9";
       }}
       onMouseLeave={(e) => {
+        if (isActive) return;
         e.currentTarget.style.transform = "translateY(0px)";
         e.currentTarget.style.background = "rgba(255,255,255,0.05)";
         e.currentTarget.style.border = "1px solid rgba(255,255,255,0.10)";
