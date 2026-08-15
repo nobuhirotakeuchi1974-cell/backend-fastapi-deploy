@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { DemoResetButton } from "./components/DemoResetButton";
 
 const BG =
   "radial-gradient(ellipse 100% 50% at 50% 0%, rgba(16,185,129,0.09) 0%, transparent 60%), #0d1f35";
@@ -317,6 +318,11 @@ export default function HomePage() {
         >
           次の一歩を考える →
         </Link>
+      </section>
+
+      {/* ── デモデータリセット（開発・デモ補助機能） ── */}
+      <section style={{ textAlign: "center", padding: "0 24px 40px" }}>
+        <DemoResetButton />
       </section>
     </main>
   );

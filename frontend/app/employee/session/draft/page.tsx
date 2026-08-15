@@ -35,18 +35,18 @@ const STATE_LABELS: Record<string, string> = {
 };
 
 const BG =
-  "radial-gradient(ellipse 80% 55% at 50% 18%, rgba(16,185,129,0.07) 0%, transparent 68%), #0d1f35";
+  "radial-gradient(ellipse 80% 55% at 50% 18%, rgba(25,201,154,0.10) 0%, transparent 68%), #10263D";
 
 // ── サブコンポーネント ────────────────────────────
 
 function BrandHeader() {
   return (
     <header style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 32 }}>
-      <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.14em", color: "#4e6480", textTransform: "uppercase" }}>
+      <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.14em", color: "#829AAF", textTransform: "uppercase" }}>
         Human Capital OS
       </span>
-      <span style={{ width: 1, height: 12, background: "#2a3f58", flexShrink: 0 }} />
-      <span style={{ fontSize: 10, fontWeight: 500, letterSpacing: "0.16em", color: "#3a5470", textTransform: "uppercase" }}>
+      <span style={{ width: 1, height: 12, background: "rgba(180,210,230,0.25)", flexShrink: 0 }} />
+      <span style={{ fontSize: 10, fontWeight: 500, letterSpacing: "0.16em", color: "#829AAF", textTransform: "uppercase" }}>
         Self-Decision System
       </span>
     </header>
@@ -56,10 +56,10 @@ function BrandHeader() {
 function StepDivider({ label }: { label: string }) {
   return (
     <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 28 }}>
-      <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.18em", color: "#4e6a86", textTransform: "uppercase", flexShrink: 0 }}>
+      <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.18em", color: "#829AAF", textTransform: "uppercase", flexShrink: 0 }}>
         {label}
       </span>
-      <div style={{ flex: 1, height: 1, background: "rgba(255,255,255,0.07)" }} />
+      <div style={{ flex: 1, height: 1, background: "rgba(180,210,230,0.18)" }} />
     </div>
   );
 }
@@ -69,9 +69,13 @@ function MessageItem({ message }: { message: Message }) {
   return (
     <div
       style={{
-        marginBottom: isAI ? 24 : 20,
-        paddingLeft: isAI ? 0 : 16,
-        borderLeft: isAI ? "none" : "2px solid rgba(16,185,129,0.20)",
+        marginBottom: isAI ? 28 : 20,
+        paddingLeft: isAI ? 0 : 14,
+        paddingTop: isAI ? 0 : 10,
+        paddingBottom: isAI ? 0 : 10,
+        borderLeft: isAI ? "none" : "2px solid rgba(25,201,154,0.35)",
+        background: isAI ? "transparent" : "rgba(25,201,154,0.05)",
+        borderRadius: isAI ? 0 : "0 8px 8px 0",
       }}
     >
       {message.content.split("\n").map((line, i) => (
@@ -79,9 +83,9 @@ function MessageItem({ message }: { message: Message }) {
           key={i}
           style={{
             fontSize: isAI ? 14 : 13,
-            color: isAI ? "#c4d4e4" : "#6b86a0",
-            lineHeight: 1.8,
-            margin: 0,
+            color: isAI ? "#B6C7D6" : "#829AAF",
+            lineHeight: isAI ? 2.0 : 1.8,
+            margin: isAI ? `0 0 ${line ? "2px" : "10px"} 0` : "0",
           }}
         >
           {line || "\u00A0"}
@@ -94,7 +98,7 @@ function MessageItem({ message }: { message: Message }) {
 function LoadingDots() {
   return (
     <div style={{ marginBottom: 24 }}>
-      <p style={{ fontSize: 18, color: "#3a5470", letterSpacing: "0.2em", lineHeight: 1 }}>···</p>
+      <p style={{ fontSize: 18, color: "#829AAF", letterSpacing: "0.2em", lineHeight: 1 }}>···</p>
     </div>
   );
 }
@@ -108,19 +112,19 @@ function CompletedView({
 }) {
   return (
     <div style={{ paddingTop: 32, paddingBottom: 16 }}>
-      <p style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.14em", color: "#4e6a86", textTransform: "uppercase", marginBottom: 16 }}>
+      <p style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.14em", color: "#19C99A", textTransform: "uppercase", marginBottom: 16 }}>
         次の一歩
       </p>
       <p
         style={{
           fontSize: 15,
-          color: "#b8c8d8",
+          color: "#F3F7FA",
           fontWeight: 600,
-          lineHeight: 1.7,
-          padding: "16px 20px",
-          borderRadius: 12,
-          border: "1px solid rgba(16,185,129,0.30)",
-          background: "rgba(16,185,129,0.05)",
+          lineHeight: 1.8,
+          padding: "18px 20px",
+          borderRadius: 14,
+          border: "1px solid rgba(25,201,154,0.40)",
+          background: "#183149",
           marginBottom: 32,
         }}
       >
@@ -137,8 +141,8 @@ function CompletedView({
           fontWeight: 700,
           border: "none",
           cursor: "pointer",
-          background: "rgba(16,185,129,0.82)",
-          color: "#fff",
+          background: "#19C99A",
+          color: "#0d1f35",
           letterSpacing: "0.02em",
         }}
       >
@@ -151,7 +155,7 @@ function CompletedView({
 function ClosedView() {
   return (
     <div style={{ paddingTop: 32, paddingBottom: 16, textAlign: "center" }}>
-      <p style={{ fontSize: 14, color: "#7a90a8", lineHeight: 1.9, marginBottom: 32 }}>
+      <p style={{ fontSize: 14, color: "#829AAF", lineHeight: 1.9, marginBottom: 32 }}>
         今日はここで区切りました。
         <br />
         また思い出したときに続けましょう。
@@ -160,7 +164,7 @@ function ClosedView() {
         href="/employee"
         style={{
           fontSize: 13,
-          color: "#4e6a86",
+          color: "#829AAF",
           textDecoration: "none",
           fontWeight: 600,
           letterSpacing: "0.02em",
@@ -178,11 +182,11 @@ function CloseConfirmView({ onConfirm }: { onConfirm: (yes: boolean) => void }) 
       style={{
         padding: "20px",
         borderRadius: 14,
-        border: "1px solid rgba(255,255,255,0.08)",
-        background: "rgba(255,255,255,0.02)",
+        border: "1px solid rgba(180,210,230,0.18)",
+        background: "#183149",
       }}
     >
-      <p style={{ fontSize: 14, color: "#94a3b8", marginBottom: 20, lineHeight: 1.7 }}>
+      <p style={{ fontSize: 14, color: "#B6C7D6", marginBottom: 20, lineHeight: 1.7 }}>
         今日はここで区切りますか？
       </p>
       <div style={{ display: "flex", gap: 10 }}>
@@ -195,9 +199,9 @@ function CloseConfirmView({ onConfirm }: { onConfirm: (yes: boolean) => void }) 
             borderRadius: 10,
             fontSize: 13,
             fontWeight: 600,
-            border: "1px solid rgba(255,255,255,0.10)",
-            background: "transparent",
-            color: "#7a90a8",
+            border: "1px solid rgba(180,210,230,0.18)",
+            background: "#1D3953",
+            color: "#829AAF",
             cursor: "pointer",
           }}
         >
@@ -213,8 +217,8 @@ function CloseConfirmView({ onConfirm }: { onConfirm: (yes: boolean) => void }) 
             fontSize: 13,
             fontWeight: 600,
             border: "none",
-            background: "rgba(16,185,129,0.75)",
-            color: "#fff",
+            background: "#19C99A",
+            color: "#0d1f35",
             cursor: "pointer",
           }}
         >
@@ -488,10 +492,10 @@ export default function SessionDraftPage() {
       <main style={{ minHeight: "100vh", background: BG, color: "#fff", padding: "44px 20px" }}>
         <div style={{ maxWidth: 540, margin: "0 auto" }}>
           <BrandHeader />
-          <p style={{ fontSize: 14, color: "#7a90a8", lineHeight: 1.8, marginBottom: 24 }}>
+          <p style={{ fontSize: 14, color: "#829AAF", lineHeight: 1.8, marginBottom: 24 }}>
             セッションデータが見つかりません。
           </p>
-          <Link href="/employee" style={{ fontSize: 13, color: "#4e6480", textDecoration: "none", fontWeight: 600 }}>
+          <Link href="/employee" style={{ fontSize: 13, color: "#829AAF", textDecoration: "none", fontWeight: 600 }}>
             ← 最初から整理する
           </Link>
         </div>
@@ -526,7 +530,7 @@ export default function SessionDraftPage() {
         {/* 戻るリンク */}
         <Link
           href={`/employee/session/new?state=${sessionData.selectedState}`}
-          style={{ display: "inline-block", fontSize: 12, color: "#4e6480", textDecoration: "none", marginBottom: 28, letterSpacing: "0.02em" }}
+          style={{ display: "inline-block", fontSize: 12, color: "#829AAF", textDecoration: "none", marginBottom: 28, letterSpacing: "0.02em" }}
         >
           ← 入力に戻る
         </Link>
@@ -542,15 +546,15 @@ export default function SessionDraftPage() {
             marginBottom: 36,
             padding: "12px 16px",
             borderRadius: 10,
-            border: "1px solid rgba(255,255,255,0.06)",
-            background: "rgba(255,255,255,0.02)",
+            border: "1px solid rgba(180,210,230,0.18)",
+            background: "#183149",
           }}
         >
           <span
             style={{
               flexShrink: 0,
               fontSize: 10,
-              color: "#4e6a86",
+              color: "#B6C7D6",
               letterSpacing: "0.04em",
               marginTop: 2,
             }}
@@ -560,7 +564,7 @@ export default function SessionDraftPage() {
           <span
             style={{
               fontSize: 11,
-              color: "#3a5470",
+              color: "#829AAF",
               lineHeight: 1.6,
               wordBreak: "break-all",
             }}
@@ -609,17 +613,17 @@ export default function SessionDraftPage() {
                   onBlur={() => setInputFocused(false)}
                   placeholder="思ったまま書いてください"
                   rows={4}
-                  className="placeholder:text-[#3a5570]"
+                  className="placeholder:text-[#829AAF]"
                   style={{
                     width: "100%",
                     boxSizing: "border-box",
                     padding: "16px 18px",
                     borderRadius: 13,
                     border: inputFocused
-                      ? "1px solid rgba(16,185,129,0.38)"
-                      : "1px solid rgba(255,255,255,0.09)",
-                    background: "rgba(255,255,255,0.025)",
-                    color: "#d1dde8",
+                      ? "1px solid rgba(25,201,154,0.50)"
+                      : "1px solid rgba(180,210,230,0.18)",
+                    background: "#183149",
+                    color: "#F3F7FA",
                     fontSize: 14,
                     lineHeight: 1.8,
                     resize: "vertical",
@@ -639,10 +643,10 @@ export default function SessionDraftPage() {
                     borderRadius: 13,
                     fontSize: 14,
                     fontWeight: 700,
-                    border: isSubmittable ? "none" : "1px solid rgba(255,255,255,0.09)",
+                    border: isSubmittable ? "none" : "1px solid rgba(180,210,230,0.18)",
                     cursor: isSubmittable ? "pointer" : "not-allowed",
-                    background: isSubmittable ? "rgba(16,185,129,0.82)" : "transparent",
-                    color: isSubmittable ? "#fff" : "#3a5470",
+                    background: isSubmittable ? "#19C99A" : "transparent",
+                    color: isSubmittable ? "#0d1f35" : "#829AAF",
                     transition: "background 0.22s ease, color 0.22s ease",
                     letterSpacing: "0.02em",
                     marginTop: 12,
@@ -661,7 +665,7 @@ export default function SessionDraftPage() {
                       border: "none",
                       cursor: "pointer",
                       fontSize: 11,
-                      color: "#2e4a66",
+                      color: "#829AAF",
                       letterSpacing: "0.04em",
                       padding: "4px 8px",
                     }}
@@ -676,7 +680,7 @@ export default function SessionDraftPage() {
 
         {/* フッター */}
         {sessionStatus === "active" && (
-          <p style={{ marginTop: 40, textAlign: "center", fontSize: 11, color: "#1e3a52", lineHeight: 1.8 }}>
+          <p style={{ marginTop: 40, textAlign: "center", fontSize: 11, color: "#829AAF", lineHeight: 1.8 }}>
             Cmd + Enter で送信
           </p>
         )}

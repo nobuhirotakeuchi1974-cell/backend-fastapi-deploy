@@ -143,7 +143,7 @@ export default function EmployeePage() {
         minHeight: "100vh",
         // 非常に弱い中央グロー — ほぼ気づかない程度の奥行き
         background:
-          "radial-gradient(ellipse 80% 55% at 50% 18%, rgba(16,185,129,0.07) 0%, transparent 68%), #0d1f35",
+          "radial-gradient(ellipse 80% 55% at 50% 18%, rgba(25,201,154,0.10) 0%, transparent 68%), #10263D",
         color: "#fff",
         padding: "44px 20px 72px",
         overflowX: "hidden",
@@ -165,7 +165,7 @@ export default function EmployeePage() {
               fontSize: 11,
               fontWeight: 700,
               letterSpacing: "0.14em",
-              color: "#4e6480",
+              color: "#829AAF",
               textTransform: "uppercase",
             }}
           >
@@ -175,7 +175,7 @@ export default function EmployeePage() {
             style={{
               width: 1,
               height: 12,
-              background: "#2a3f58",
+              background: "rgba(180,210,230,0.25)",
               flexShrink: 0,
             }}
           />
@@ -184,7 +184,7 @@ export default function EmployeePage() {
               fontSize: 10,
               fontWeight: 500,
               letterSpacing: "0.16em",
-              color: "#3a5470",
+              color: "#829AAF",
               textTransform: "uppercase",
             }}
           >
@@ -199,7 +199,7 @@ export default function EmployeePage() {
               fontSize: 12,
               fontWeight: 500,
               letterSpacing: "0.08em",
-              color: "#4e6480",
+              color: "#829AAF",
               marginBottom: 14,
             }}
           >
@@ -212,7 +212,7 @@ export default function EmployeePage() {
               fontWeight: 800,
               letterSpacing: "-0.025em",
               lineHeight: 1.25,
-              color: "#e2e8f0",
+              color: "#F3F7FA",
               marginBottom: 14,
             }}
           >
@@ -222,7 +222,7 @@ export default function EmployeePage() {
           <p
             style={{
               fontSize: 13,
-              color: "#7a90a8",
+              color: "#829AAF",
               lineHeight: 1.85,
             }}
           >
@@ -249,7 +249,7 @@ export default function EmployeePage() {
                   fontSize: 10,
                   fontWeight: 600,
                   letterSpacing: "0.14em",
-                  color: "#4e6a86",
+                  color: "#829AAF",
                   textTransform: "uppercase",
                 }}
               >
@@ -259,7 +259,7 @@ export default function EmployeePage() {
                 style={{
                   flex: 1,
                   height: 1,
-                  background: "rgba(255,255,255,0.09)",
+                  background: "rgba(180,210,230,0.18)",
                 }}
               />
             </div>
@@ -282,15 +282,15 @@ export default function EmployeePage() {
                       padding: "18px 18px",
                       borderRadius: 14,
                       border: isSelected
-                        ? "1.5px solid rgba(16,185,129,0.60)"
+                        ? "1.5px solid rgba(25,201,154,0.65)"
                         : isHovered
-                        ? "1px solid rgba(255,255,255,0.20)"
-                        : "1px solid rgba(255,255,255,0.11)",
+                        ? "1px solid rgba(180,210,230,0.30)"
+                        : "1px solid rgba(180,210,230,0.18)",
                       background: isSelected
-                        ? "rgba(16,185,129,0.10)"
+                        ? "rgba(25,201,154,0.12)"
                         : isHovered
-                        ? "rgba(255,255,255,0.08)"
-                        : "rgba(255,255,255,0.05)",
+                        ? "#1D3953"
+                        : "#183149",
                       cursor: "pointer",
                       textAlign: "left",
                       transition:
@@ -308,14 +308,14 @@ export default function EmployeePage() {
                     <Icon
                       size={15}
                       strokeWidth={1.5}
-                      color={isSelected ? "#6ee7b7" : "#4e6a86"}
+                      color={isSelected ? "#19C99A" : "#829AAF"}
                     />
                     <div>
                       <p
                         style={{
                           fontSize: 13,
                           fontWeight: 600,
-                          color: isSelected ? "#a7f3d0" : "#b8c8d8",
+                          color: isSelected ? "#A7F3D0" : "#B6C7D6",
                           lineHeight: 1.3,
                           marginBottom: 4,
                         }}
@@ -326,7 +326,7 @@ export default function EmployeePage() {
                         style={{
                           fontSize: 11,
                           fontWeight: 400,
-                          color: isSelected ? "#4ade80" : "#607d97",
+                          color: isSelected ? "#86efac" : "#829AAF",
                           lineHeight: 1.4,
                         }}
                       >
@@ -351,12 +351,12 @@ export default function EmployeePage() {
             borderRadius: 13,
             fontSize: 14,
             fontWeight: 700,
-            border: selected ? "none" : "1px solid rgba(255,255,255,0.14)",
+            border: selected ? "none" : "1px solid rgba(180,210,230,0.18)",
             cursor: selected ? "pointer" : "not-allowed",
             background: selected
-              ? "rgba(16,185,129,0.82)"
+              ? "#19C99A"
               : "transparent",
-            color: selected ? "#fff" : "#4e6a86",
+            color: selected ? "#0d1f35" : "#829AAF",
             transition: "background 0.22s ease, color 0.22s ease",
             letterSpacing: "0.02em",
             marginTop: 8,
@@ -369,16 +369,16 @@ export default function EmployeePage() {
           <div
             style={{
               marginTop: 40,
-              padding: "14px 18px",
-              borderRadius: 12,
-              border: "1px solid rgba(255,255,255,0.09)",
-              background: "rgba(255,255,255,0.03)",
+              padding: "18px 20px",
+              borderRadius: 14,
+              border: "1px solid rgba(180,210,230,0.18)",
+              background: "#183149",
             }}
           >
             <p
               style={{
                 fontSize: 10,
-                color: "#4e6a86",
+                color: "#19C99A",
                 marginBottom: 6,
                 letterSpacing: "0.06em",
                 textTransform: "uppercase",
@@ -389,7 +389,7 @@ export default function EmployeePage() {
             <p
               style={{
                 fontSize: 13,
-                color: "#607d97",
+                color: "#B6C7D6",
                 fontWeight: 500,
                 lineHeight: 1.5,
               }}
@@ -400,7 +400,7 @@ export default function EmployeePage() {
               <p
                 style={{
                   fontSize: 11,
-                  color: "#3a5470",
+                  color: "#829AAF",
                   marginTop: 5,
                   lineHeight: 1.4,
                 }}
@@ -416,13 +416,13 @@ export default function EmployeePage() {
                   style={{
                     marginTop: 14,
                     paddingTop: 14,
-                    borderTop: "1px solid rgba(255,255,255,0.07)",
+                    borderTop: "1px solid rgba(180,210,230,0.12)",
                   }}
                 >
                   <p
                     style={{
                       fontSize: 12,
-                      color: "#7a90a8",
+                      color: "#829AAF",
                       marginBottom: 12,
                       lineHeight: 1.6,
                     }}
@@ -439,9 +439,9 @@ export default function EmployeePage() {
                         flex: 1,
                         padding: "10px 12px",
                         borderRadius: 9,
-                        border: "1px solid rgba(16,185,129,0.35)",
-                        background: "rgba(16,185,129,0.08)",
-                        color: "#6ee7b7",
+                        border: "1px solid rgba(25,201,154,0.50)",
+                        background: "rgba(25,201,154,0.12)",
+                        color: "#19C99A",
                         fontSize: 13,
                         fontWeight: 600,
                         cursor: "pointer",
@@ -456,9 +456,9 @@ export default function EmployeePage() {
                         flex: 1,
                         padding: "10px 12px",
                         borderRadius: 9,
-                        border: "1px solid rgba(255,255,255,0.13)",
-                        background: "rgba(255,255,255,0.04)",
-                        color: "#94a3b8",
+                        border: "1px solid rgba(180,210,230,0.18)",
+                        background: "#1D3953",
+                        color: "#B6C7D6",
                         fontSize: 13,
                         fontWeight: 600,
                         cursor: "pointer",
@@ -475,13 +475,13 @@ export default function EmployeePage() {
                 style={{
                   marginTop: 14,
                   paddingTop: 14,
-                  borderTop: "1px solid rgba(255,255,255,0.07)",
+                  borderTop: "1px solid rgba(180,210,230,0.12)",
                 }}
               >
                 <p
                   style={{
                     fontSize: 10,
-                    color: "#4e6a86",
+                    color: "#829AAF",
                     marginBottom: 5,
                     letterSpacing: "0.06em",
                     textTransform: "uppercase",
@@ -489,7 +489,7 @@ export default function EmployeePage() {
                 >
                   上司からのフィードバック
                 </p>
-                <p style={{ fontSize: 12, color: "#7a90a8", lineHeight: 1.7 }}>
+                <p style={{ fontSize: 12, color: "#829AAF", lineHeight: 1.7 }}>
                   {managerRequest.managerFeedback}
                 </p>
               </div>
@@ -525,7 +525,7 @@ export default function EmployeePage() {
                   {MGMT_ACTION_LABELS[managerRequest.managementAction]}
                 </p>
                 {managerRequest.managementComment && (
-                  <p style={{ fontSize: 12, color: "#7a90a8", lineHeight: 1.7 }}>
+                  <p style={{ fontSize: 12, color: "#829AAF", lineHeight: 1.7 }}>
                     {managerRequest.managementComment}
                   </p>
                 )}
@@ -539,9 +539,9 @@ export default function EmployeePage() {
                   width: "100%",
                   padding: "9px 12px",
                   borderRadius: 8,
-                  border: "1px solid rgba(255,255,255,0.08)",
+                  border: "1px solid rgba(180,210,230,0.18)",
                   background: "transparent",
-                  color: "#3a5470",
+                  color: "#829AAF",
                   fontSize: 11,
                   fontWeight: 500,
                   cursor: "pointer",
@@ -560,13 +560,13 @@ export default function EmployeePage() {
           <p
             style={{
               fontSize: 12,
-              color: "#3a5470",
+            color: "#829AAF",
               lineHeight: 1.9,
             }}
           >
             ここで整理した内容は、あなた自身のためのものです。
             <br />
-            <span style={{ fontSize: 11, color: "#2e4a66" }}>
+            <span style={{ fontSize: 11, color: "#829AAF" }}>
               評価のためではなく、自分のために整理する場所です。
             </span>
           </p>
