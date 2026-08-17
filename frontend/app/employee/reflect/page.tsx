@@ -4,6 +4,10 @@ import { Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
 const STORAGE_KEY_NEXT_ACTION = "hcos_next_action";
+const STORAGE_KEY_ACTIVE = "hcos_active_session";
+const STORAGE_KEY_DRAFT = "hcos_session_draft";
+const STORAGE_KEY_CYCLE_HISTORY = "hcos_cycle_history";
+const STORAGE_KEY_CYCLE_CONTEXT = "hcos_cycle_context";
 const BG =
   "radial-gradient(ellipse 80% 55% at 50% 18%, rgba(16,185,129,0.07) 0%, transparent 68%), #0d1f35";
 
@@ -12,6 +16,22 @@ type HcosNextAction = {
   createdAt: string;
   deadline?: string;
   status?: "active" | "completed";
+};
+
+type HcosCycleHistoryEntry = {
+  id: string;
+  action: string;
+  deadline?: string;
+  result: "completed" | "not_completed" | "continued";
+  reflection?: string;
+  completedAt: string;
+};
+
+type HcosCycleContext = {
+  previousAction: string;
+  result: "completed" | "not_completed";
+  reflection: string;
+  createdAt: string;
 };
 
 type DeadlineOption = "today" | "tomorrow" | "thisweek" | "custom";
@@ -101,6 +121,75 @@ function BrandHeader() {
   );
 }
 
+// ── Cycle管理ヘルパー ─────────────────────────────
+
+function getCurrentAction(): HcosNextAction | null {
+  try {
+    const raw = sessionStorage.getItem(STORAGE_KEY_NEXT_ACTION);
+    if (raw) return JSON.parse(raw) as HcosNextAction;
+  } catch { /* ignore */ }
+  return null;
+}
+
+function saveCycleToHistory(
+  action: string,
+  deadline: string | undefined,
+  result: "completed" | "not_completed" | "continued",
+  reflection: string
+): void {
+  try {
+    const raw = sessionStorage.getItem(STORAGE_KEY_CYCLE_HISTORY);
+    const history: HcosCycleHistoryEntry[] = raw ? JSON.parse(raw) : [];
+    const entry: HcosCycleHistoryEntry = {
+      id: crypto.randomUUID(),
+      action,
+      deadline,
+      result,
+      reflection,
+      completedAt: new Date().toISOString(),
+    };
+    sessionStorage.setItem(STORAGE_KEY_CYCLE_HISTORY, JSON.stringify([...history, entry]));
+  } catch { /* ignore */ }
+}
+
+function clearCycleSession(): void {
+  try {
+    sessionStorage.removeItem(STORAGE_KEY_ACTIVE);
+    sessionStorage.removeItem(STORAGE_KEY_DRAFT);
+  } catch { /* ignore */ }
+}
+
+function saveCycleContext(
+  previousAction: string,
+  result: "completed" | "not_completed",
+  reflection: string
+): void {
+  try {
+    const ctx: HcosCycleContext = {
+      previousAction,
+      result,
+      reflection,
+      createdAt: new Date().toISOString(),
+    };
+    sessionStorage.setItem(STORAGE_KEY_CYCLE_CONTEXT, JSON.stringify(ctx));
+  } catch { /* ignore */ }
+}
+
+function markActionCompleted(): void {
+  try {
+    const raw = sessionStorage.getItem(STORAGE_KEY_NEXT_ACTION);
+    if (raw) {
+      const parsed = JSON.parse(raw) as HcosNextAction;
+      sessionStorage.setItem(
+        STORAGE_KEY_NEXT_ACTION,
+        JSON.stringify({ ...parsed, status: "completed" })
+      );
+    }
+  } catch { /* ignore */ }
+}
+
+// ── ReflectInner ─────────────────────────────────
+
 function ReflectInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -109,9 +198,8 @@ function ReflectInner() {
   const [subState, setSubState] = useState<SubState>(
     result === "done" ? "done_reflect" : "notyet_choice"
   );
-  const [deadlineOption, setDeadlineOption] = useState<DeadlineOption | null>(
-    null
-  );
+  const [selectedReflection, setSelectedReflection] = useState<string>("");
+  const [deadlineOption, setDeadlineOption] = useState<DeadlineOption | null>(null);
   const [customDate, setCustomDate] = useState("");
 
   const today = getLocalToday();
@@ -123,31 +211,11 @@ function ReflectInner() {
 
   const resolvedDeadline = (): string | null => {
     switch (deadlineOption) {
-      case "today":
-        return todayStr;
-      case "tomorrow":
-        return tomorrowStr;
-      case "thisweek":
-        return endOfWeekStr;
-      case "custom":
-        return customDate || null;
-      default:
-        return null;
-    }
-  };
-
-  const markCompleted = () => {
-    try {
-      const raw = sessionStorage.getItem(STORAGE_KEY_NEXT_ACTION);
-      if (raw) {
-        const parsed = JSON.parse(raw) as HcosNextAction;
-        sessionStorage.setItem(
-          STORAGE_KEY_NEXT_ACTION,
-          JSON.stringify({ ...parsed, status: "completed" })
-        );
-      }
-    } catch {
-      /* ignore */
+      case "today":    return todayStr;
+      case "tomorrow": return tomorrowStr;
+      case "thisweek": return endOfWeekStr;
+      case "custom":   return customDate || null;
+      default:          return null;
     }
   };
 
@@ -163,9 +231,7 @@ function ReflectInner() {
           JSON.stringify({ ...parsed, deadline: dl })
         );
       }
-    } catch {
-      /* ignore */
-    }
+    } catch { /* ignore */ }
     setSubState("finished");
     setTimeout(() => router.replace("/employee"), 1400);
   };
@@ -177,19 +243,11 @@ function ReflectInner() {
     custom: "日付を選ぶ",
   };
 
-  // ── 保存完了 ────────────────────────────────
+  // ── 保存完了 ──────────────────────────────────
   if (subState === "finished") {
     return (
       <div style={{ paddingTop: 48, textAlign: "center" }}>
-        <p
-          style={{
-            fontSize: 15,
-            fontWeight: 600,
-            color: "#e2e8f0",
-            lineHeight: 1.6,
-            marginBottom: 10,
-          }}
-        >
+        <p style={{ fontSize: 15, fontWeight: 600, color: "#e2e8f0", lineHeight: 1.6, marginBottom: 10 }}>
           保存しました。
         </p>
         <p style={{ fontSize: 12, color: "#4e6a86" }}>ホームに戻ります…</p>
@@ -197,7 +255,7 @@ function ReflectInner() {
     );
   }
 
-  // ── できた → 振り返り選択 ────────────────────
+  // ── できた → 振り返り選択 ──────────────────────
   if (subState === "done_reflect") {
     return (
       <>
@@ -219,12 +277,15 @@ function ReflectInner() {
           {[
             { id: "forward", label: "前に進んだ" },
             { id: "learned", label: "新しいことが分かった" },
-            { id: "same", label: "思ったほど変わらなかった" },
+            { id: "same",    label: "思ったほど変わらなかった" },
           ].map(({ id, label }) => (
             <button
               key={id}
               type="button"
-              onClick={() => setSubState("done_nextstep")}
+              onClick={() => {
+                setSelectedReflection(label);
+                setSubState("done_nextstep");
+              }}
               style={choiceBtnStyle()}
             >
               {label}
@@ -235,8 +296,12 @@ function ReflectInner() {
     );
   }
 
-  // ── できた → 次の一歩を考えるか ────────────────
+  // ── できた → 続きを考えるか ────────────────────
   if (subState === "done_nextstep") {
+    const act = getCurrentAction();
+    const action = act?.action ?? "";
+    const deadline = act?.deadline;
+
     return (
       <>
         <section style={{ marginBottom: 32 }}>
@@ -249,21 +314,28 @@ function ReflectInner() {
               lineHeight: 1.4,
             }}
           >
-            次の一歩も考えますか？
+            この続きから、次の一歩を考えますか？
           </h1>
         </section>
         <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
           <button
             type="button"
-            onClick={() => router.push("/employee")}
+            onClick={() => {
+              saveCycleToHistory(action, deadline, "completed", selectedReflection);
+              clearCycleSession();
+              saveCycleContext(action, "completed", selectedReflection);
+              router.push("/employee?continuation=1");
+            }}
             style={choiceBtnStyle()}
           >
-            次の一歩を考える
+            続きから考える
           </button>
           <button
             type="button"
             onClick={() => {
-              markCompleted();
+              markActionCompleted();
+              saveCycleToHistory(action, deadline, "completed", selectedReflection);
+              clearCycleSession();
               setSubState("finished");
               setTimeout(() => router.replace("/employee"), 1400);
             }}
@@ -306,14 +378,30 @@ function ReflectInner() {
           </button>
           <button
             type="button"
-            onClick={() => router.push("/employee")}
+            onClick={() => {
+              const act = getCurrentAction();
+              const action = act?.action ?? "";
+              const deadline = act?.deadline;
+              saveCycleToHistory(action, deadline, "not_completed", "もっと小さな一歩を探す");
+              clearCycleSession();
+              saveCycleContext(action, "not_completed", "もっと小さな一歩を探す");
+              router.push("/employee?continuation=1");
+            }}
             style={choiceBtnStyle()}
           >
             もっと小さな一歩にする
           </button>
           <button
             type="button"
-            onClick={() => router.push("/employee")}
+            onClick={() => {
+              const act = getCurrentAction();
+              const action = act?.action ?? "";
+              const deadline = act?.deadline;
+              saveCycleToHistory(action, deadline, "not_completed", "別の一歩を選ぶ");
+              clearCycleSession();
+              saveCycleContext(action, "not_completed", "別の一歩を選ぶ");
+              router.push("/employee?continuation=1");
+            }}
             style={choiceBtnStyle()}
           >
             別の一歩を考える
@@ -323,7 +411,7 @@ function ReflectInner() {
     );
   }
 
-  // ── 期限を延ばす ────────────────────────────
+  // ── 期限を延ばす ──────────────────────────────
   if (subState === "extend_deadline") {
     const dl = resolvedDeadline();
     return (
@@ -349,9 +437,7 @@ function ReflectInner() {
             marginBottom: 20,
           }}
         >
-          {(
-            ["today", "tomorrow", "thisweek", "custom"] as DeadlineOption[]
-          ).map((opt) => {
+          {(["today", "tomorrow", "thisweek", "custom"] as DeadlineOption[]).map((opt) => {
             const isSelected = deadlineOption === opt;
             return (
               <button

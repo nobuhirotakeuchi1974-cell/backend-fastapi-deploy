@@ -13,11 +13,13 @@ import {
   type HcosDialogueState,
   type HcosActiveSession,
   type HcosAiResponse,
+  type HcosCycleContext,
   type DialogueMessage,
   DEFAULT_DIALOGUE_STATE,
   STORAGE_KEY_DRAFT,
   STORAGE_KEY_ACTIVE,
   STORAGE_KEY_NEXT_ACTION,
+  STORAGE_KEY_CYCLE_CONTEXT,
   callHcosAiDialogue,
 } from "./hcosAiClient";
 
@@ -242,7 +244,18 @@ export default function SessionDraftPage() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [phase, setPhase] = useState<Phase>("RECEIVE");
   const [dialogueState, setDialogueState] = useState<HcosDialogueState>(DEFAULT_DIALOGUE_STATE);
-  const [sessionId] = useState(() => crypto.randomUUID());
+  // draft.sessionIdを使いリロード時のactive_sessionとsessionIdを一致させる
+  const [sessionId] = useState(() => {
+    if (typeof window === "undefined") return crypto.randomUUID();
+    try {
+      const raw = window.sessionStorage.getItem(STORAGE_KEY_DRAFT);
+      if (raw) {
+        const d = JSON.parse(raw) as { sessionId?: string };
+        if (d.sessionId) return d.sessionId;
+      }
+    } catch { /* ignore */ }
+    return crypto.randomUUID();
+  });
 
   // UI状態
   const [userInput, setUserInput] = useState("");
@@ -255,42 +268,73 @@ export default function SessionDraftPage() {
   // React Strict Mode による二重実行を防ぐ
   const initialCallFiredRef = useRef(false);
 
+  // continuation context（前Cycleの学びを次のCycleへ引き継ぐ、1回限り使用）
+  const cycleContextRef = useRef<HcosCycleContext | null>(null);
+
   // ── 初期化: sessionStorage から読み込み ─────────
   useEffect(() => {
     try {
-      // まず hcos_active_session を確認（リロード復元）
+      // まず draft を読んでsessionIdを取得する（復元判定の基準）
+      const rawDraft = sessionStorage.getItem(STORAGE_KEY_DRAFT);
+      const draft = rawDraft
+        ? (JSON.parse(rawDraft) as {
+            state?: string;
+            eventText?: string;
+            isContinuation?: boolean;
+            sessionId?: string;
+          })
+        : null;
+
+      // hcos_active_session を確認（同一sessionIdの場合のみリロード復元）
       const rawActive = sessionStorage.getItem(STORAGE_KEY_ACTIVE);
       if (rawActive) {
         const active = JSON.parse(rawActive) as HcosActiveSession;
-        setSessionData({
-          selectedState: active.selectedState,
-          eventText: active.initialEventText,
-        });
-        setPhase(active.phase);
-        setDialogueState(active.state);
-        // API メッセージ形式 → UI メッセージ形式に変換
-        const uiMessages: Message[] = active.messages.map((m, i) => ({
-          id: String(i),
-          role: m.role === "assistant" ? "ai" : "user",
-          content: m.content,
-        }));
-        setMessages(uiMessages);
-        setDataLoaded(true);
-        return;
+        // draft.sessionIdあり→一致する場合のみ復元（別Cycleの残存セッションを無視する）
+        const canRestore =
+          draft?.sessionId != null
+            ? active.sessionId === draft.sessionId
+            : true; // 古い形式（sessionIdなし）は後方互換でそのまま復元
+        if (canRestore) {
+          setSessionData({
+            selectedState: active.selectedState,
+            eventText: active.initialEventText,
+          });
+          setPhase(active.phase);
+          setDialogueState(active.state);
+          const uiMessages: Message[] = active.messages.map((m, i) => ({
+            id: String(i),
+            role: m.role === "assistant" ? "ai" : "user",
+            content: m.content,
+          }));
+          setMessages(uiMessages);
+          setDataLoaded(true);
+          return;
+        }
+        // sessionId不一致 → 旧Cycleの残存active_sessionは無視して新draftを使う
       }
 
-      // 初回: hcos_session_draft を読み込む
-      const rawDraft = sessionStorage.getItem(STORAGE_KEY_DRAFT);
-      if (!rawDraft) {
+      // 新しいdraftから新セッション開始
+      if (!draft) {
         setDataLoaded(true);
         return;
       }
-      const draft = JSON.parse(rawDraft) as { state?: string; eventText?: string };
       const state = draft.state ?? "";
       const eventText = draft.eventText ?? "";
+
+      // 継続Cycleの場合のみcycle_contextを読み込んで消費する
+      if (draft.isContinuation === true) {
+        try {
+          const rawCtx = sessionStorage.getItem(STORAGE_KEY_CYCLE_CONTEXT);
+          if (rawCtx) {
+            cycleContextRef.current = JSON.parse(rawCtx) as HcosCycleContext;
+            // 消費済みにする（2回以上使わない）
+            sessionStorage.removeItem(STORAGE_KEY_CYCLE_CONTEXT);
+          }
+        } catch { /* ignore */ }
+      }
+
       setSessionData({ selectedState: state, eventText });
 
-      // 感情強度の初期値を selectedState から推定（会話が進めば AI が更新）
       const intensity: EmotionalIntensity = ["irritated", "down", "anxious"].includes(state)
         ? "high"
         : ["uncertain", "tired"].includes(state)
@@ -348,10 +392,20 @@ export default function SessionDraftPage() {
 
     setError(null);
     setIsLoading(true);
+
+    // 前Cycleのcontextがある場合、initialEventTextの前に構造化タグを付加する
+    // （API schema変更なし。AIが前Cycle情報と今回相談を確実に区別できる形式）
+    const ctx = cycleContextRef.current;
+    const resultLabel = ctx?.result === "completed" ? "できた" : "できていない";
+    const contextPrefix = ctx
+      ? `[CONTINUATION_CONTEXT]\nprevious_action: ${ctx.previousAction}\nresult: ${resultLabel}\nreflection: ${ctx.reflection}\n[/CONTINUATION_CONTEXT]\n[CURRENT_CONSULTATION]\n`
+      : "";
+    const initialEventText = contextPrefix + sessionData.eventText;
+
     callHcosAiDialogue({
       sessionId,
       selectedState: sessionData.selectedState,
-      initialEventText: sessionData.eventText,
+      initialEventText,
       phase,
       messages: [],
       state: dialogueState,
@@ -397,7 +451,6 @@ export default function SessionDraftPage() {
   // ── 完了時: hcos_next_action に保存 ─────────────
   useEffect(() => {
     if (
-      dialogueState.sessionStatus === "completed" &&
       dialogueState.nextAction.confirmed &&
       dialogueState.nextAction.candidate
     ) {
@@ -418,7 +471,7 @@ export default function SessionDraftPage() {
   // ── 送信 ─────────────────────────────────────────
   const handleSubmit = async () => {
     const trimmed = userInput.trim();
-    if (!trimmed || isLoading || dialogueState.sessionStatus !== "active") return;
+    if (!trimmed || isLoading || dialogueState.sessionStatus !== "active" || dialogueState.nextAction.confirmed) return;
 
     setError(null);
 
@@ -511,7 +564,10 @@ export default function SessionDraftPage() {
 
   const sessionStatus = dialogueState.sessionStatus;
   const nextActionCandidate = dialogueState.nextAction.candidate;
-  const isSubmittable = userInput.trim().length > 0 && !isLoading && sessionStatus === "active";
+  // nextAction.confirmed=true になった時点で入力UIを閉じる（sessionStatus反映前の抜け穴を防ぐ）
+  const isNextActionConfirmed = dialogueState.nextAction.confirmed && !!nextActionCandidate;
+  const isEffectivelyDone = sessionStatus === "completed" || isNextActionConfirmed;
+  const isSubmittable = userInput.trim().length > 0 && !isLoading && sessionStatus === "active" && !isNextActionConfirmed;
 
   return (
     <main
@@ -588,7 +644,7 @@ export default function SessionDraftPage() {
         </div>
 
         {/* ── 完了 ── */}
-        {sessionStatus === "completed" && (
+        {isEffectivelyDone && (
           <CompletedView
             nextAction={nextActionCandidate}
             onNavigate={() => router.push("/employee/session/action")}
@@ -599,7 +655,7 @@ export default function SessionDraftPage() {
         {sessionStatus === "closed_without_action" && <ClosedView />}
 
         {/* ── アクティブ: 入力エリア ── */}
-        {sessionStatus === "active" && (
+        {sessionStatus === "active" && !isNextActionConfirmed && (
           <>
             {showCloseConfirm ? (
               <CloseConfirmView onConfirm={handleCloseConfirm} />
@@ -679,7 +735,7 @@ export default function SessionDraftPage() {
         )}
 
         {/* フッター */}
-        {sessionStatus === "active" && (
+        {sessionStatus === "active" && !isNextActionConfirmed && (
           <p style={{ marginTop: 40, textAlign: "center", fontSize: 11, color: "#829AAF", lineHeight: 1.8 }}>
             Cmd + Enter で送信
           </p>

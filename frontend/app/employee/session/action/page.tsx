@@ -148,8 +148,8 @@ export default function SessionActionPage() {
     }, 1600);
   };
 
-  // ロード前: 空背景（フラッシュ防止）
-  if (!loaded || (!nextAction && !loaded)) {
+  // ロード前 or データなし（redirect useEffect 発火待機中）: 空背景
+  if (!loaded || !nextAction) {
     return <main style={{ minHeight: "100vh", background: BG }} />;
   }
 

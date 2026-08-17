@@ -86,6 +86,8 @@ export interface HcosAiResponse {
 export const STORAGE_KEY_DRAFT = "hcos_session_draft";
 export const STORAGE_KEY_ACTIVE = "hcos_active_session";
 export const STORAGE_KEY_NEXT_ACTION = "hcos_next_action";
+export const STORAGE_KEY_CYCLE_HISTORY = "hcos_cycle_history";
+export const STORAGE_KEY_CYCLE_CONTEXT = "hcos_cycle_context";
 
 // ── アクティブセッション構造 (仕様書 §33) ─────────────────────────────────────
 
@@ -96,6 +98,24 @@ export interface HcosActiveSession {
   phase: Phase;
   messages: DialogueMessage[];
   state: HcosDialogueState;
+}
+
+// ── Cycle History / Context ────────────────────────────────────────────────────
+
+export interface HcosCycleHistoryEntry {
+  id: string;
+  action: string;
+  deadline?: string;
+  result: "completed" | "not_completed" | "continued";
+  reflection?: string;
+  completedAt: string;
+}
+
+export interface HcosCycleContext {
+  previousAction: string;
+  result: "completed" | "not_completed";
+  reflection: string;
+  createdAt: string;
 }
 
 export const DEFAULT_DIALOGUE_STATE: HcosDialogueState = {

@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -19,6 +19,15 @@ type DraftData = {
   state: string;
   eventText: string;
   createdAt: string;
+  sessionId: string;
+  isContinuation?: boolean;
+};
+
+type HcosCycleContext = {
+  previousAction: string;
+  result: "completed" | "not_completed";
+  reflection: string;
+  createdAt: string;
 };
 
 function SessionNewContent() {
@@ -26,6 +35,16 @@ function SessionNewContent() {
   const searchParams = useSearchParams();
   const stateParam = searchParams.get("state") ?? "";
   const stateLabel = STATE_LABELS[stateParam] ?? null;
+  const isContinuation = searchParams.get("continuation") === "1";
+
+  const [cycleContext] = useState<HcosCycleContext | null>(() => {
+    if (typeof window === "undefined" || !isContinuation) return null;
+    try {
+      const raw = window.sessionStorage.getItem("hcos_cycle_context");
+      if (raw) return JSON.parse(raw) as HcosCycleContext;
+    } catch { /* ignore */ }
+    return null;
+  });
 
   const [text, setText] = useState("");
   const [isFocused, setIsFocused] = useState(false);
@@ -38,8 +57,12 @@ function SessionNewContent() {
       state: stateParam,
       eventText: text.trim(),
       createdAt: new Date().toISOString(),
+      sessionId: crypto.randomUUID(),
+      ...(isContinuation && { isContinuation: true }),
     };
     sessionStorage.setItem("hcos_session_draft", JSON.stringify(draft));
+    // 旧Cycleのセッションを必ずクリアし、前回AI対話の復元を防ぐ
+    sessionStorage.removeItem("hcos_active_session");
     router.push("/employee/session/draft");
   };
 
@@ -56,7 +79,6 @@ function SessionNewContent() {
     >
       <div style={{ maxWidth: 540, margin: "0 auto" }}>
 
-        {/* ブランドヘッダー */}
         <header
           style={{
             display: "flex",
@@ -77,12 +99,7 @@ function SessionNewContent() {
             Human Capital OS
           </span>
           <span
-            style={{
-              width: 1,
-              height: 12,
-              background: "#2a3f58",
-              flexShrink: 0,
-            }}
+            style={{ width: 1, height: 12, background: "#2a3f58", flexShrink: 0 }}
           />
           <span
             style={{
@@ -97,7 +114,6 @@ function SessionNewContent() {
           </span>
         </header>
 
-        {/* 戻るリンク */}
         <Link
           href="/employee"
           style={{
@@ -112,7 +128,6 @@ function SessionNewContent() {
           ← 状態を選び直す
         </Link>
 
-        {/* ステップ表示 */}
         <div
           style={{
             display: "flex",
@@ -133,16 +148,36 @@ function SessionNewContent() {
           >
             Step 02
           </span>
-          <div
-            style={{
-              flex: 1,
-              height: 1,
-              background: "rgba(255,255,255,0.07)",
-            }}
-          />
+          <div style={{ flex: 1, height: 1, background: "rgba(255,255,255,0.07)" }} />
         </div>
 
-        {/* 選択した状態 — 確認用の小さな表示 */}
+        {isContinuation && cycleContext && (
+          <div
+            style={{
+              marginBottom: 28,
+              padding: "12px 16px",
+              borderRadius: 10,
+              border: "1px solid rgba(25,201,154,0.25)",
+              background: "rgba(25,201,154,0.05)",
+            }}
+          >
+            <p
+              style={{
+                fontSize: 10,
+                color: "#19C99A",
+                letterSpacing: "0.08em",
+                marginBottom: 6,
+                textTransform: "uppercase",
+              }}
+            >
+              前回の続き
+            </p>
+            <p style={{ fontSize: 12, color: "#829AAF", lineHeight: 1.6 }}>
+              前回の一歩：{cycleContext.previousAction}
+            </p>
+          </div>
+        )}
+
         {stateLabel && (
           <div
             style={{
@@ -156,28 +191,15 @@ function SessionNewContent() {
               background: "rgba(255,255,255,0.025)",
             }}
           >
-            <span
-              style={{
-                fontSize: 10,
-                color: "#4e6a86",
-                letterSpacing: "0.06em",
-              }}
-            >
+            <span style={{ fontSize: 10, color: "#4e6a86", letterSpacing: "0.06em" }}>
               選択した状態
             </span>
-            <span
-              style={{
-                fontSize: 12,
-                color: "#7a90a8",
-                fontWeight: 500,
-              }}
-            >
+            <span style={{ fontSize: 12, color: "#7a90a8", fontWeight: 500 }}>
               {stateLabel}
             </span>
           </div>
         )}
 
-        {/* メイン質問 */}
         <h1
           style={{
             fontSize: 26,
@@ -204,7 +226,6 @@ function SessionNewContent() {
           今、頭に残っていることをそのまま書いてください。
         </p>
 
-        {/* 入力欄 */}
         <textarea
           value={text}
           onChange={(e) => setText(e.target.value)}
@@ -214,7 +235,6 @@ function SessionNewContent() {
             "たとえば、\n今日の打ち合わせがなんとなく引っかかっている。\n上司の反応が気になる。\n自分の説明が悪かったのか、\nそもそも考え方が違うのか分からない…"
           }
           rows={9}
-          // Tailwind で placeholder の色だけを指定
           className="placeholder:text-[#3a5570]"
           style={{
             width: "100%",
@@ -235,7 +255,6 @@ function SessionNewContent() {
           }}
         />
 
-        {/* CTA */}
         <button
           type="button"
           onClick={handleNext}

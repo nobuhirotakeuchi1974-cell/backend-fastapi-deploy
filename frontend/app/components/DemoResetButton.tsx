@@ -8,6 +8,8 @@ const HCOS_DEMO_STORAGE_KEYS = [
   "hcos_active_session",
   "hcos_next_action",
   "hcos_manager_requests",
+  "hcos_cycle_history",
+  "hcos_cycle_context",
 ] as const;
 
 export function DemoResetButton() {

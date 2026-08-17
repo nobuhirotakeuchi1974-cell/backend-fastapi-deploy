@@ -1,7 +1,7 @@
 ﻿"use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { Suspense, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   Zap,
   Cloud,
@@ -99,8 +99,9 @@ const STATE_GROUPS: StateGroup[] = [
   },
 ];
 
-export default function EmployeePage() {
+function EmployeeContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [selected, setSelected] = useState<string | null>(null);
   const [hoveredId, setHoveredId] = useState<string | null>(null);
   // sessionStorage はクライアント専用のため SSR ガードつき lazy initializer で読む
@@ -132,9 +133,13 @@ export default function EmployeePage() {
     return null;
   });
 
+  // URLから直接取得（client-side遷移でもリアクティブに更新される）
+  const isContinuation = searchParams.get("continuation") === "1";
+
   const handleNext = () => {
     if (!selected) return;
-    router.push(`/employee/session/new?state=${selected}`);
+    const base = `/employee/session/new?state=${selected}`;
+    router.push(isContinuation ? `${base}&continuation=1` : base);
   };
 
   return (
@@ -574,5 +579,13 @@ export default function EmployeePage() {
 
       </div>
     </main>
+  );
+}
+
+export default function EmployeePage() {
+  return (
+    <Suspense>
+      <EmployeeContent />
+    </Suspense>
   );
 }
